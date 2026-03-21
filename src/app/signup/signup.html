@@ -1,1 +1,105 @@
-<p>signup works!</p>
+<div class="signup-page">
+  <div class="bg"></div>
+
+  <div class="logo">
+    <mat-icon class="logo.icon">movie</mat-icon>
+    <span class="logo-text">PulseScreen</span>
+  </div>
+
+  <mat-card class="signup-card" appearance="outlined">
+    <h1>Sign up</h1>
+    <p class="subtitle">Create an account to start watching.</p>
+
+    <form [formGroup]="signupForm" (ngSubmit)="submit()" class="form">
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Full Name</mat-label>
+        <input matInput formControlName="fullName" /> <mat-icon matPrefix>person</mat-icon>
+
+        @if (signupForm.get('fullName')?.hasError('required')) {
+          <mat-error>Full name is required</mat-error>
+        }
+        @if (signupForm.get('fullName')?.hasError('minlength')) {
+          <mat-error>Name must be at least 2 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" /> <mat-icon matPrefix>email</mat-icon>
+
+        @if (signupForm.get('email')?.hasError('required')) {
+          <mat-error>Email is required</mat-error>
+        }
+        @if (signupForm.get('email')?.hasError('email')) {
+          <mat-error>Please enter a valid email</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Password</mat-label>
+        <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" />
+        <mat-icon matPrefix>lock</mat-icon>
+
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="hidePassword = !hidePassword"
+          tabindex="-1"
+        >
+          <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+
+        @if (signupForm.get('password')?.hasError('required')) {
+          <mat-error>Password is required</mat-error>
+        }
+        @if (signupForm.get('password')?.hasError('minlength')) {
+          <mat-error>Password must be at least 6 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Confirm Password</mat-label>
+        <input
+          matInput
+          [type]="hideConfirmPassword ? 'password' : 'text'"
+          formControlName="confirmPassword"
+        /><mat-icon matPrefix>lock_outline</mat-icon>
+
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="hideConfirmPassword = !hideConfirmPassword"
+          tabindex="-1"
+        >
+          <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+
+        @if (signupForm.get('confirmPassword')?.hasError('required')) {
+          <mat-error>Confirm Password is required</mat-error>
+        }
+        @if (
+          signupForm.get('confirmPassword')?.hasError('passwordMismatch') &&
+          !signupForm.get('confirmPassword')?.hasError('required')
+        ) {
+          <mat-error>Passwords do not match</mat-error>
+        }
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        class="signup-btn"
+        type="submit"
+        [disabled]="loading || !signupForm.valid"
+      >
+        {{ loading ? 'Creating Account...' : 'Sign Up' }}
+      </button>
+
+      <div class="signin">
+        Already have an account?
+        <a routerLink="/login" class="link">Sign in here</a>
+      </div>
+    </form>
+  </mat-card>
+</div>
