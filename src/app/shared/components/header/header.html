@@ -89,6 +89,11 @@
   <ng-container>
     <div class="app-header">
       <ng-container *ngTemplateOutlet="headerBar"></ng-container>
+      <main class="main-content">
+        <router-outlet></router-outlet>
+      </main>
     </div>
   </ng-container>
+} @else {
+  <ng-container> <ng-container *ngTemplateOutlet="headerBar"></ng-container></ng-container>
 }
