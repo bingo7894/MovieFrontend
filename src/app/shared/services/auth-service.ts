@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment.development';
 import { HttpClient } from '@angular/common/http';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
-import { BehaviorSubject, tap } from 'rxjs';
+import { BehaviorSubject, retry, tap } from 'rxjs';
 import { Router } from '@angular/router';
 
 @Injectable({
@@ -76,5 +76,44 @@ export class AuthService {
 
   resendVerificationEmail(email: string) {
     return this.http.post(this.apiUrl + '/resend-verification', { email });
+  }
+
+  forgotPassword(email: string) {
+    return this.http.post(this.apiUrl + '/forgot-password', { email });
+  }
+
+  resetPassword(token: string, newPassword: string) {
+    return this.http.post(this.apiUrl + '/reset-password', { token, newPassword });
+  }
+
+  initializeAuth(): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.isLoggedIn()) {
+        this.handlerAuthSucces(null);
+        resolve();
+        return;
+      }
+
+      this.fetchCurrentUser().subscribe({
+        next: (user) => {
+          this.handlerAuthSucces(user);
+          resolve();
+        },
+        error: () => {
+          this.handlerAuthSucces(null);
+          resolve();
+        },
+      });
+    });
+  }
+
+  private fetchCurrentUser() {
+    return this.http.get(this.apiUrl + '/current-user');
+  }
+
+  logout() {
+    localStorage.removeItem('token');
+    this.currentUserSubject.next(null);
+    this.router.navigate(['/']);
   }
 }
