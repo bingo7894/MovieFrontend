@@ -1,0 +1,94 @@
+<ng-template #headerBar>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <mat-icon class="logo-icon">movie</mat-icon>
+        <span class="logo-text">PulseScreen{{ isAdminMode ? 'Admin' : '' }}</span>
+      </div>
+
+      <div class="header-right">
+        @if (isAdminMode) {
+          <nav class="nav">
+            <a mat-button routerLink="videos" routerLinkActive="active" class="nav-link">
+              <mat-icon>video_library</mat-icon>
+              <span>Videos</span>
+            </a>
+
+            <a mat-button routerLink="users" routerLinkActive="active" class="nav-link">
+              <mat-icon>people</mat-icon>
+              <span>Users</span>
+            </a>
+          </nav>
+        } @else {
+          <nav class="nav">
+            <a mat-button routerLink="/home" routerLinkActive="active" class="nav-link">
+              <mat-icon>home</mat-icon>
+              <span>Home</span>
+            </a>
+
+            <a mat-button routerLink="/my-favorites" routerLinkActive="active" class="nav-link">
+              <mat-icon>favorite</mat-icon>
+              <span>My Favorites</span>
+            </a>
+          </nav>
+        }
+
+        <div class="user-menu">
+          <button mat-button [matMenuTriggerFor]="userMenu" class="user-profile-btn">
+            <mat-icon class="profile-icon">account_circle</mat-icon>
+            <mat-icon class="dropdown-icon">arrow_drop_down</mat-icon>
+          </button>
+          <mat-menu #userMenu="matMenu" class="user-menu-dropdown">
+            <div class="user-info-header">
+              <div class="user-avatar">
+                <mat-icon>account_circle</mat-icon>
+              </div>
+
+              <div class="user-details">
+                <div class="user-email">{{ currentUser?.email }}</div>
+                <div class="user-role-badge" [class.admin]="isAdmin()">
+                  <mat-icon class="role-icon">{{
+                    isAdmin() ? 'admin_panel_settings' : 'person'
+                  }}</mat-icon
+                  >{{ currentUser?.role }}
+                </div>
+              </div>
+            </div>
+            <mat-divider></mat-divider>
+
+            @if (isAdmin()) {
+              <button mat-menu-item (click)="switchMode()" class="mode-switch-item">
+                <mat-icon class="mode-icon">{{
+                  isAdminMode ? 'home' : 'admin_panel_settings'
+                }}</mat-icon>
+                <span>{{ isAdminMode ? 'Switch to User View' : 'Switch to Admin Panel' }}</span>
+              </button>
+            }
+
+            @if (isAdmin()) {
+              <mat-divider></mat-divider>
+            }
+
+            <button mat-menu-item (click)="openChangePassword()">
+              <mat-icon>lock</mat-icon>
+              <span>Change Password</span>
+            </button>
+
+            <button mat-menu-item (click)="logout()" class="logout-btn">
+              <mat-icon>logout</mat-icon>
+              <span>Logout</span>
+            </button>
+          </mat-menu>
+        </div>
+      </div>
+    </div>
+  </header>
+</ng-template>
+
+@if (showRouterOutlet) {
+  <ng-container>
+    <div class="app-header">
+      <ng-container *ngTemplateOutlet="headerBar"></ng-container>
+    </div>
+  </ng-container>
+}

@@ -43,9 +43,18 @@ export class AuthService {
   }
 
   handlerAuthSucces(authData: any) {
-    if (authData?.token) {
+    if (!authData) {
+      this.setCurrent(null);
+      return;
+    }
+
+    if (authData.token) {
       localStorage.setItem('token', authData.token);
     }
+
+    const userData = authData.user ? authData.user : authData;
+
+    this.setCurrent(userData);
   }
 
   setCurrent(user: any | null) {
