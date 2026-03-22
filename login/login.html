@@ -1,0 +1,62 @@
+<div class="auth-page">
+  <div class="bg"></div>
+
+  <div class="logo">
+    <mat-icon class="logo-icon">movie</mat-icon>
+    <span class="logo-text">PulseScreen</span>
+  </div>
+
+  <mat-card class="auth-card" appearance="outlined">
+    <h1>Sign In</h1>
+
+    <form [formGroup]="loginForm" (ngSubmit)="submit()" class="form">
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" /> <mat-icon matPrefix>email</mat-icon>
+
+        @if (loginForm.get('email')?.hasError('required')) {
+          <mat-error>Email is required</mat-error>
+        }
+        @if (loginForm.get('email')?.hasError('email')) {
+          <mat-error>Please enter a valid email</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Password</mat-label>
+        <input matInput [type]="hide ? 'password' : 'text'" formControlName="password" />
+        <mat-icon matPrefix>lock</mat-icon>
+
+        <button mat-icon-button matSuffix type="button" (click)="hide = !hide" tabindex="-1">
+          <mat-icon>{{ hide ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+
+        @if (loginForm.get('password')?.hasError('required')) {
+          <mat-error>Password is required</mat-error>
+        }
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        class="sign in btn"
+        type="submit"
+        [disabled]="loading || !loginForm.valid"
+      >
+        {{ loading ? 'Signing...' : 'Sign In' }}
+      </button>
+
+      @if (showResendLink) {
+        <button type="button" class="link-btn resend" (click)="resendVerification()">
+          Resend verification email
+        </button>
+      }
+
+      <button type="button" class="link-btn forgot" (click)="forgot()">Forgot Password ?</button>
+
+      <div class="signup">
+        <span>New to PulseScreen</span>
+        <a routerLink="/signup" class="link">Sign up now.</a>
+      </div>
+    </form>
+  </mat-card>
+</div>

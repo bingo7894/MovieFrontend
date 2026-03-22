@@ -1,0 +1,165 @@
+.auth-page {
+  background: #141414;
+  color: #fff;
+  min-height: 100vh;
+  width: 100vw;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.3) 40%, rgba(0, 0, 0, 0.9)),
+    url('/landing.png');
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.9);
+  z-index: 1;
+}
+
+/* PulseScreen logo */
+.logo {
+  position: absolute;
+  left: 32px;
+  top: 18px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  color: #4a148c;
+}
+
+.logo-text {
+  background: linear-gradient(135deg, #4a148c 0%, #ff6b6b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 2;
+  width: min(92vw, 480px);
+  padding: 48px 40px;
+  background: rgba(0, 0, 0, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.loading-container,
+.success-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.loading-container h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.success-icon {
+  font-size: 80px;
+  width: 80px;
+  height: 80px;
+  color: #4caf50;
+}
+
+.error-icon {
+  font-size: 80px;
+  width: 80px;
+  height: 80px;
+  color: #4a148c;
+}
+
+h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.message {
+  margin: 0;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 300px;
+  margin-top: 8px;
+}
+
+.action-btn {
+  width: 100%;
+  height: 48px;
+  font-weight: 700;
+  background: #4a148c !important;
+  color: #fff !important;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  background: #f40612 !important;
+  transform: translateY(-1px);
+}
+
+.secondary-btn {
+  width: 100%;
+  height: 48px;
+  font-weight: 600;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+@media (max-width: 600px) {
+  .auth-card {
+    padding: 36px 24px;
+  }
+
+  h1 {
+    font-size: 26px;
+  }
+
+  .success-icon,
+  .error-icon {
+    font-size: 60px;
+    width: 60px;
+    height: 60px;
+  }
+}
