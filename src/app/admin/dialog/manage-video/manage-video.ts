@@ -53,6 +53,36 @@ export class ManageVideo {
     });
   }
 
+  // 2. เพิ่ม ngOnInit เพื่อดึงข้อมูลเก่ามาใส่ฟอร์ม
+  ngOnInit(): void {
+    if (this.isEditMode && this.data.video) {
+      const v = this.data.video;
+
+      // อัปเดตข้อมูลลงในฟอร์ม
+      this.videoForm.patchValue({
+        title: v.title,
+        description: v.description,
+        year: v.year,
+        rating: v.rating,
+        categories: v.categories,
+        duration: v.duration,
+        src: v.src,
+        poster: v.poster,
+        published: v.published,
+      });
+
+      // โหลด Preview ภาพและวิดีโอเก่ามาแสดง
+      if (v.src) {
+        this.videoLoading = true;
+        this.loadVideoPreview(v.src);
+      }
+      if (v.poster) {
+        this.posterLoading = true;
+        this.loadPosterPreview(v.poster);
+      }
+    }
+  }
+
   static arrayNotEmpty(control: AbstractControl): ValidationErrors | null {
     const value = control.value;
     if (!value || (Array.isArray(value) && value.length === 0)) {

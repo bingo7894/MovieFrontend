@@ -1,15 +1,188 @@
 <div class="video-list-container">
   <div class="header-section">
-    <div class="title wrapper">
+    <div class="title-wrapper">
       <h1 class="page-title">Video Library</h1>
-      <p class="page=subtitlte">Manage and organize your video content</p>
+      <p class="page-subtitle">Manage and organize your video content</p>
     </div>
 
     <div class="header-actions">
       <button mat-raised-button color="accent" (click)="createNew()" class="upload-btn">
-        <mat-icon>add_circle</mat-icon>
-        Upload New Video
+        <mat-icon>add_circle</mat-icon> Upload New Video
+      </button>
+      <button
+        mat-icon-button
+        (click)="load()"
+        [disabled]="loading"
+        class="refresh-btn"
+        matTooltip="Refresh"
+      >
+        <mat-icon>refresh</mat-icon>
       </button>
     </div>
   </div>
+
+  <div class="search-section">
+    <div class="search-wrapper">
+      <mat-icon class="search-icon">search</mat-icon>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search by title or description..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange($event)"
+      />
+
+      @if (searchQuery) {
+        <button mat-icon-button class="clear-btn" (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+
+      <div class="search-info">
+        @if (!loading) {
+          <span>Showing {{ pageVideos.length }} of {{ totalElements }} Videos</span>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" class="loading-bar"></mat-progress-bar>
+  }
+
+  @if (!loading) {
+    @if (pageVideos.length > 0) {
+      <div class="stats-row">
+        <div class="stat-card">
+          <mat-icon>video_library</mat-icon>
+          <div class="stat-content">
+            <span class="stat-value">{{ totalVideos }}</span>
+            <span class="stat-label">Total Videos</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <mat-icon>publish</mat-icon>
+          <div class="stat-content">
+            <span class="stat-value">{{ getPublihedCount() }}</span>
+            <span class="stat-label">Published</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <mat-icon>schedule</mat-icon>
+          <div class="stat-content">
+            <span class="stat-value">{{ getTotalDuraion() }}</span>
+            <span class="stat-label">Total Duration</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="video-grid">
+        @for (v of pageVideos; track v.id) {
+          <div class="video-card">
+            <div class="card-thumbnail" (click)="play(v)">
+              <img [src]="getPosterUrl(v)" [alt]="v.title" class="thumbnail-img" />
+              <div class="thumbnail-overlay">
+                <mat-icon class="play-icon">play_circle</mat-icon>
+              </div>
+              @if (v.duration) {
+                <div class="duration-badge">{{ formatDuration(v.duration) }}</div>
+              }
+              <div
+                class="status-badge"
+                [class.published]="v.published"
+                [class.draft]="!v.published"
+              >
+                {{ v.published ? 'Published' : 'Draft' }}
+              </div>
+            </div>
+
+            <div class="card-content">
+              <h3 class="card-title" (click)="edit(v)">{{ v.title }}</h3>
+              <p class="card-description">{{ v.description || 'No description' }}</p>
+
+              <div class="card-meta">
+                @if (v.year) {
+                  <div class="meta-item">
+                    <mat-icon>calendar_today</mat-icon><span>{{ v.year }}</span>
+                  </div>
+                }
+                @if (v.rating) {
+                  <div class="meta-item">
+                    <mat-icon>star</mat-icon><span>{{ v.rating }}</span>
+                  </div>
+                }
+                @if (v.categories?.length) {
+                  <div class="meta-item">
+                    <mat-icon>category</mat-icon><span>{{ v.categories.join(', ') }}</span>
+                  </div>
+                }
+              </div>
+
+              <div class="card-footer">
+                <div class="publish-toggle-wrapper">
+                  <mat-slide-toggle
+                    color="primary"
+                    [checked]="v.published"
+                    (change)="togglePublish($event, v)"
+                  >
+                    {{ v.published ? 'Published' : 'Draft' }}
+                  </mat-slide-toggle>
+                </div>
+                <div class="card-actions">
+                  <button mat-button class="action-btn" (click)="edit(v)">
+                    <mat-icon>edit</mat-icon> Edit
+                  </button>
+                  @if (!v.published) {
+                    <button mat-button class="action-btn danger" (click)="remove(v)">
+                      <mat-icon>delete</mat-icon> Delete
+                    </button>
+                  } @else {
+                    <span class="locked-info" matTooltip="Unpublish to delete">
+                      <mat-icon>lock</mat-icon>
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="load-more-container">
+        @if (loadingMore) {
+          <div class="loading-more">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Loading more videos...</p>
+          </div>
+        } @else if (!hasMoreVideos) {
+          <div class="end-of-content">
+            <mat-icon>check_circle</mat-icon>
+            <p>You've reached the end! No more videos to load.</p>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-state-container">
+        @if (!searchQuery) {
+          <div class="empty-state">
+            <mat-icon class="empty-icon">video_library</mat-icon>
+            <h2>No videos yet</h2>
+            <p>Start building your video library by uploading your first video</p>
+            <button mat-raised-button color="primary" (click)="createNew()">
+              <mat-icon>add_circle</mat-icon> Upload Video
+            </button>
+          </div>
+        } @else {
+          <div class="empty-state">
+            <mat-icon class="empty-icon">search_off</mat-icon>
+            <h2>No Result Found</h2>
+            <p>No videos match "{{ searchQuery }}"</p>
+            <button mat-raised-button color="primary" (click)="clearSearch()">
+              <mat-icon>clear</mat-icon> Clear Search
+            </button>
+          </div>
+        }
+      </div>
+    }
+  }
 </div>
