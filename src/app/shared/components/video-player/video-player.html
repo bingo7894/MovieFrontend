@@ -1,1 +1,113 @@
-<p>video-player works!</p>
+<div class="player-container" (mousemove)="onMouseMove()">
+  <button mat-icon-button class="close-btn" (click)="closePlayer()">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  <video
+    #videoPlayer
+    [src]="videoSrc"
+    (loadedmetadata)="onLoadedMetadata()"
+    (timeupdate)="onTimeUpdate()"
+    (click)="onVideoClick()"
+    (play)="isPlaying = true"
+    (pause)="isPlaying = false"
+    (ended)="isPlaying = false"
+    preload="metadata"
+    playsinline
+    class="video-element"
+  ></video>
+
+  <div class="player-overlay" [class.hidden]="!showControls">
+    <div class="top-bar">
+      <div class="video-info">
+        <h2 class="video-title">{{ video.title }}</h2>
+        <p class="video-meta">
+          @if (video.year) {
+            <span>{{ video.year }}</span>
+          }
+          @if (video.rating) {
+            <span class="rating-badge">{{ video.rating }}</span>
+          }
+          @if (video.duration) {
+            <span>{{ formatTime(video.duration) }}</span>
+          }
+        </p>
+      </div>
+    </div>
+
+    @if (!isPlaying) {
+      <div class="center-play" (click)="togglePlay()">
+        <mat-icon>play_circle</mat-icon>
+      </div>
+    }
+
+    <div class="bottom-controls">
+      <div class="progress-container" (click)="onProgressClick($event)">
+        <div class="progress-bar">
+          <div class="progress-filled" [style.width.%]="progressPercent"></div>
+        </div>
+      </div>
+
+      <div class="controls-row">
+        <div class="controls-left">
+          <button mat-icon-button (click)="togglePlay()" class="control-btn">
+            <mat-icon>{{ isPlaying ? 'pause' : 'play_arrow' }}</mat-icon>
+          </button>
+
+          <button mat-icon-button (click)="seekBackward()" class="control-btn">
+            <mat-icon>replay_10</mat-icon>
+          </button>
+
+          <button mat-icon-button (click)="seekForward()" class="control-btn">
+            <mat-icon>forward_10</mat-icon>
+          </button>
+
+          <div class="volume-control">
+            <button mat-icon-button (click)="toggleMute()" class="control-btn">
+              <mat-icon>{{
+                isMuted || volume === 0 ? 'volume_off' : volume < 0.5 ? 'volume_down' : 'volume_up'
+              }}</mat-icon>
+            </button>
+            <input
+              type="range"
+              class="volume-slider"
+              [min]="0"
+              [max]="1"
+              [step]="0.01"
+              [value]="volume"
+              [style.--volume-percent]="volumePercent + '%'"
+              (input)="changeVolume($event)"
+            />
+          </div>
+
+          <span class="time-display">
+            {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
+          </span>
+        </div>
+
+        <div class="controls-right">
+          <button mat-icon-button (click)="toggleFullscreen()" class="control-btn">
+            <mat-icon>{{ isFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (duration === 0) {
+    <div class="loading-spinner">
+      <mat-spinner diameter="60"></mat-spinner>
+    </div>
+  }
+
+  @if (showControls && !isPlaying) {
+    <div class="keyboard-hint">
+      <div class="hint-title">Keyboard Shortcuts</div>
+      <div class="hint-grid">
+        <span>Space/K</span><span>Play/Pause</span> <span>&larr;/&rarr;</span><span>Seek 10s</span>
+        <span>&uarr;/&darr;</span><span>Volume</span> <span>M</span><span>Mute</span> <span>F</span
+        ><span>Fullscreen</span> <span>Esc</span><span>Exit</span>
+      </div>
+    </div>
+  }
+</div>

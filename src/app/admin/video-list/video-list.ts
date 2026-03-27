@@ -199,16 +199,38 @@ export class VideoList implements OnInit {
   togglePublish(event: any, video: any) {
     const newPublishedState = event.checked;
 
+    // --- 1. ป้องกันการกดรัวๆ (Spam Click) ---
+    if (video.isPublishing) {
+      event.source.checked = !newPublishedState; // คืนค่าสวิตช์ถ้ากำลังโหลดอยู่
+      return;
+    }
+
+    // ล็อกสวิตช์ของวิดีโอตัวนี้ไว้
+    video.isPublishing = true;
+
+    // --- 2. Optimistic UI: อัปเดตข้อมูลบนหน้าเว็บทันทีให้ดูลื่นไหล ---
+    video.published = newPublishedState;
+
     this.videoService.setPublishedByAdmin(video.id, newPublishedState).subscribe({
       next: (response) => {
-        video.published = newPublishedState;
+        // สำเร็จ: ปลดล็อกปุ่ม
+        video.isPublishing = false;
+
         this.notification.success(
           `Video ${video.published ? 'published' : 'unpublished'} successfully`,
         );
         this.loadStats();
       },
       error: (err) => {
+        // ไม่สำเร็จ: คืนค่าเดิมให้หน้าจอ และปลดล็อกปุ่ม
         video.published = !newPublishedState;
+        video.isPublishing = false;
+
+        // บังคับให้สวิตช์บนหน้าจอกลับไปอยู่ตำแหน่งเดิม
+        if (event.source) {
+          event.source.checked = video.published;
+        }
+
         this.errorHandlerService.handle(err, 'Failed to update publish status, Please try again.');
       },
     });
@@ -218,16 +240,23 @@ export class VideoList implements OnInit {
     return this.publishedVideos;
   }
 
-  getTotalDuraion(): string {
+  getTotalDuration(): string {
     const total = this.totalDurationSeconds;
-    const hours = Math.floor(total / 3600);
-    const minutest = Math.floor((total % 3600) / 60);
-    if (hours > 0) {
-      return `${hours}h ${minutest}m`;
-    }
-    return `${minutest}m`;
-  }
 
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = Math.floor(total % 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+
+    return `${seconds}s`;
+  }
   formatDuration(seconds: number): string {
     return this.utilityService.formatDuration(seconds);
   }
