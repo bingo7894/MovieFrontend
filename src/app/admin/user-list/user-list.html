@@ -1,0 +1,181 @@
+<div class="user-management-container">
+  <div class="header-section">
+    <div class="title-wrapper">
+      <h1 class="page-title">User Management</h1>
+      <p class="page-subtitle">Manage all users and their permissions</p>
+    </div>
+    <div class="header-actions">
+      <button mat-raised-button color="accent" (click)="createUser()" class="create-btn">
+        <mat-icon>person_add</mat-icon>
+        Add New User
+      </button>
+      <button
+        mat-icon-button
+        (click)="loadUsers()"
+        [disabled]="loading"
+        class="refresh-btn"
+        matTooltip="Refresh"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="search-section">
+    <div class="search-wrapper">
+      <mat-icon class="search-icon">search</mat-icon>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search by name or email..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange($event)"
+      />
+      @if (searchQuery) {
+        <button mat-icon-button class="clear-btn" (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+    <div class="search-info">
+      @if (!loading) {
+        <span>Showing {{ paginatedUsers.length }} of {{ totalUsers }} users</span>
+      }
+    </div>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" class="loading-bar"></mat-progress-bar>
+  }
+
+  @if (error && !loading) {
+    <div class="error-container">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h2>Oops! Something went wrong</h2>
+      <p>Failed to load users. Please try again.</p>
+      <button mat-raised-button color="primary" (click)="loadUsers()">
+        <mat-icon>refresh</mat-icon>
+        Retry
+      </button>
+    </div>
+  }
+
+  @if (!loading && !error && paginatedUsers.length > 0) {
+    <div class="users-grid">
+      @for (user of paginatedUsers; track user.id) {
+        <div class="user-card" [class.current-user]="isCurrentUser(user)">
+          <div class="user-card-header">
+            <div class="user-avatar">
+              <mat-icon>person</mat-icon>
+            </div>
+            <div class="user-info">
+              <h3 class="user-name">
+                {{ user.fullName }}
+                @if (isCurrentUser(user)) {
+                  <span class="you-badge">YOU</span>
+                }
+              </h3>
+              <p class="user-email">{{ user.email }}</p>
+            </div>
+          </div>
+
+          <div class="user-card-body">
+            <div class="user-meta">
+              <div class="meta-item">
+                <span class="meta-label">Role</span>
+                <span [class]="getRoleBadgeClass(user.role)">
+                  <mat-icon class="badge-icon">{{
+                    user.role === 'ADMIN' ? 'admin_panel_settings' : 'person'
+                  }}</mat-icon>
+                  {{ user.role }}
+                </span>
+              </div>
+
+              <div class="meta-item">
+                <span class="meta-label">Status</span>
+                <span [class]="getStatusBadgeClass(user.active)">
+                  <mat-icon class="badge-icon">{{
+                    user.active ? 'check_circle' : 'cancel'
+                  }}</mat-icon>
+                  {{ user.active ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="user-details">
+              <div class="detail-item">
+                <mat-icon class="detail-icon">badge</mat-icon>
+                <span>ID: {{ user.id }}</span>
+              </div>
+              <div class="detail-item">
+                <mat-icon class="detail-icon">calendar_today</mat-icon>
+                <span>Joined {{ formatDate(user.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="user-card-actions">
+            <button mat-button (click)="editUser(user)" class="action-button">
+              <mat-icon>edit</mat-icon>
+              Edit
+            </button>
+            <button mat-button (click)="changeUserRole(user)" class="action-button">
+              <mat-icon>swap_horiz</mat-icon>
+              Change Role
+            </button>
+            <button
+              mat-button
+              (click)="toggleUserStatus(user)"
+              [disabled]="isCurrentUser(user)"
+              class="action-button"
+              [class.disabled]="isCurrentUser(user)"
+            >
+              <mat-icon>{{ user.active ? 'block' : 'check_circle' }}</mat-icon>
+              {{ user.active ? 'Deactivate' : 'Activate' }}
+            </button>
+            <button
+              mat-button
+              (click)="deleteUser(user)"
+              class="action-button delete-action"
+              [class.disabled]="isCurrentUser(user)"
+              [disabled]="isCurrentUser(user)"
+            >
+              <mat-icon>delete</mat-icon>
+              Delete
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (!loading && !error && totalUsers === 0 && searchQuery) {
+    <div class="empty-state">
+      <div class="empty-icon-wrapper">
+        <mat-icon class="empty-icon">search_off</mat-icon>
+      </div>
+      <h2>No Results Found</h2>
+      <p>No users match "{{ searchQuery }}"</p>
+      <button mat-raised-button color="primary" (click)="clearSearch()">
+        <mat-icon>clear</mat-icon>
+        Clear Search
+      </button>
+    </div>
+  }
+
+  <div class="load-more-container">
+    @if (loadingMore) {
+      <div class="loading-more">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Loading more users...</p>
+      </div>
+    }
+
+    @if (!loadingMore && !hasMoreUsers && paginatedUsers.length > 0) {
+      <div class="end-of-content">
+        <mat-icon>check_circle</mat-icon>
+        <p>You've reached the end! No more users to load.</p>
+      </div>
+    }
+  </div>
+</div>

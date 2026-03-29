@@ -1,0 +1,133 @@
+.dialog-container {
+  width: 100%;
+}
+
+.dialog-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid rgba(229, 9, 20, 0.2);
+  background: rgba(10, 10, 10, 0.95);
+}
+
+.dialog-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+}
+
+.dialog-content {
+  padding: 24px 32px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.dialog-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dialog-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.dialog-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.dialog-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.form-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: #fff;
+}
+
+.section-title mat-icon {
+  color: #e50914;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(20, 20, 20, 0.98);
+}
+
+.footer-cancel {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-weight: 500;
+}
+
+.footer-cancel:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.footer-save {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px !important;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.footer-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+:host ::ng-deep .mat-mdc-form-field {
+  width: 100%;
+}
+
+:host ::ng-deep .mat-mdc-select-value-text {
+  color: #fff !important;
+}
+
+:host ::ng-deep .mat-mdc-select-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+:host ::ng-deep .mat-mdc-select-arrow {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+@media (max-width: 600px) {
+  .dialog-header,
+  .dialog-content,
+  .dialog-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}

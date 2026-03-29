@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../components/confirm-dialog/confirm-dialog';
 import { ManageVideo } from '../../admin/dialog/manage-video/manage-video';
 import { VideoPlayer } from '../components/video-player/video-player';
 import { DialogConfig } from '@angular/cdk/dialog';
+import { MangeUser } from '../../admin/dialog/mange-user/mange-user';
 
 @Injectable({
   providedIn: 'root',
@@ -50,6 +51,13 @@ export class DialogService {
     return this.dialog.open(VideoPlayer, {
       data: video,
       ...DIALOG_CONFIG.VIDEO_PLAYER,
+    });
+  }
+
+  openManageUserDialog(mode: 'create' | 'edit', user?: any): MatDialogRef<MangeUser> {
+    return this.dialog.open(MangeUser, {
+      ...DIALOG_CONFIG.MANAGE_USER,
+      data: { mode, user },
     });
   }
 }

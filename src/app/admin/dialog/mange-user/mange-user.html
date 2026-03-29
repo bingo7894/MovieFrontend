@@ -1,0 +1,100 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h1>{{ isEditMode ? 'Edit User' : 'Create New User' }}</h1>
+  </div>
+
+  <div class="dialog-content">
+    <form [formGroup]="userForm" class="create-form">
+      <div class="form-section">
+        <h2 class="section-title">
+          <mat-icon>person</mat-icon>
+          {{ isEditMode ? 'Edit Information' : 'User Information' }}
+        </h2>
+
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Full Name</mat-label>
+            <input matInput formControlName="fullName" placeholder="Enter full name" />
+            <mat-icon matPrefix>badge</mat-icon>
+            @if (userForm.get('fullName')?.hasError('required')) {
+              <mat-error>Full name is required</mat-error>
+            }
+          </mat-form-field>
+
+          @if (!isEditMode) {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Email</mat-label>
+              <input matInput type="email" formControlName="email" placeholder="Enter email" />
+              <mat-icon matPrefix>email</mat-icon>
+              @if (userForm.get('email')?.hasError('required')) {
+                <mat-error>Email is required</mat-error>
+              }
+              @if (userForm.get('email')?.hasError('email')) {
+                <mat-error>Please enter a valid email</mat-error>
+              }
+            </mat-form-field>
+          }
+
+          @if (!isEditMode) {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Password</mat-label>
+              <input
+                matInput
+                [type]="hidePassword ? 'password' : 'text'"
+                formControlName="password"
+                placeholder="Enter password"
+              />
+              <mat-icon matPrefix>lock</mat-icon>
+              <button
+                mat-icon-button
+                matSuffix
+                type="button"
+                (click)="hidePassword = !hidePassword"
+                tabindex="-1"
+              >
+                <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              @if (userForm.get('password')?.hasError('required')) {
+                <mat-error>Password is required</mat-error>
+              }
+              @if (userForm.get('password')?.hasError('minlength')) {
+                <mat-error>Password must be at least 6 characters</mat-error>
+              }
+            </mat-form-field>
+          }
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Role</mat-label>
+            <mat-select formControlName="role">
+              <mat-option value="USER">User</mat-option>
+              <mat-option value="ADMIN">Admin</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>admin_panel_settings</mat-icon>
+          </mat-form-field>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="dialog-footer">
+    <button mat-button (click)="onCancel()" class="footer-cancel">Cancel</button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onSave()"
+      [disabled]="!userForm.valid || creating"
+      class="footer-save"
+    >
+      <mat-icon>{{ creating ? 'hourglass_empty' : isEditMode ? 'save' : 'person_add' }}</mat-icon>
+      {{
+        creating
+          ? isEditMode
+            ? 'Saving...'
+            : 'Creating...'
+          : isEditMode
+            ? 'Save Changes'
+            : 'Create User'
+      }}
+    </button>
+  </div>
+</div>
