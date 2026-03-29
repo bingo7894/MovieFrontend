@@ -9,7 +9,7 @@ const routes: Routes = [
     path: '',
     component: Header,
     children: [
-      { path: '', redirectTo: 'video', pathMatch: 'full' },
+      { path: '', redirectTo: 'videos', pathMatch: 'full' },
       { path: 'videos', component: VideoList },
       { path: 'users', component: UserList },
     ],

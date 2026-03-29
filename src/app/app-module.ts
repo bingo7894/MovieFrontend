@@ -19,9 +19,10 @@ import { ForgotPassword } from './forgot-password/forgot-password';
 import { AuthService } from './shared/services/auth-service';
 import { ResetPassword } from './reset-password/reset-password';
 import { SharedModule } from './shared/shared-module';
+import { MyFavorites } from './user/my-favorites/my-favorites';
 
 @NgModule({
-  declarations: [App, Landing, Signup, Login, VerfyEmail, Home, ForgotPassword, ResetPassword],
+  declarations: [App, Landing, Signup, Login, VerfyEmail, Home, ForgotPassword, ResetPassword, MyFavorites],
   imports: [BrowserModule, AppRoutingModule, SharedModule],
   providers: [
     provideAppInitializer(() => {

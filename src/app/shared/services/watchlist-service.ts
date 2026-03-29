@@ -6,7 +6,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
   providedIn: 'root',
 })
 export class WatchlistService {
-  private apiUrl = environment.apiUrl + '/watchlist';
+  private apiUrl = environment.apiUrl + '/watchList';
 
   constructor(private http: HttpClient) {}
 

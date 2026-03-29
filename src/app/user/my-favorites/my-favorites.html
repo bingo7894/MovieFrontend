@@ -1,0 +1,140 @@
+<div class="dashboard-container">
+  <app-header [showRouterOutlet]="false"></app-header>
+
+  <div class="search-section">
+    <div class="search-container">
+      <mat-form-field appearance="outline" class="search-input">
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          placeholder="Search in your favorites..."
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onSearch()"
+          (input)="onSearch()"
+        />
+        @if (searchQuery) {
+          <button mat-icon-button matSuffix (click)="clearSearch()">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+    </div>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" class="loading-bar"></mat-progress-bar>
+  }
+
+  @if (error && !loading) {
+    <div class="error-container">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <p>Failed to load your favorite videos. Please try again later.</p>
+      <button mat-raised-button color="primary" (click)="loadVideos()">
+        <mat-icon>refresh</mat-icon> Retry
+      </button>
+    </div>
+  }
+
+  @if (!loading && !error) {
+    <div class="content-section">
+      @if (filteredVideos.length > 0) {
+        <section class="video-section">
+          <h3 class="section-title">{{ searchQuery ? 'Search Results' : 'My Favorites' }}</h3>
+
+          <div class="video-grid">
+            @for (video of filteredVideos; track video.id) {
+              <div class="video-card">
+                <div class="card-thumbnail" (click)="playVideo(video)">
+                  <img [src]="getPosterUrl(video)" [alt]="video.title" class="thumbnail-img" />
+                  <div class="thumbnail-overlay">
+                    <mat-icon class="play-icon">play_circle</mat-icon>
+                  </div>
+                  @if (video.duration) {
+                    <div class="duration-badge">
+                      {{ formatDuration(video.duration) }}
+                    </div>
+                  }
+                </div>
+
+                <div class="card-content">
+                  <div class="card-header">
+                    <h3 class="card-title" (click)="playVideo(video)">{{ video.title }}</h3>
+
+                    <button
+                      mat-icon-button
+                      class="watch-later-icon active"
+                      (click)="toggleWatchlist(video, $event)"
+                      matTooltip="Remove from My Favorites"
+                    >
+                      <mat-icon>favorite</mat-icon>
+                    </button>
+                  </div>
+
+                  <p class="card-description">{{ video.description || 'No description' }}</p>
+
+                  <div class="card-meta">
+                    @if (video.year) {
+                      <div class="meta-item">
+                        <mat-icon>calendar_today</mat-icon>
+                        <span>{{ video.year }}</span>
+                      </div>
+                    }
+                    @if (video.rating) {
+                      <div class="meta-item">
+                        <mat-icon>star</mat-icon>
+                        <span>{{ video.rating }}</span>
+                      </div>
+                    }
+                    @if (video.categories && video.categories.length > 0) {
+                      <div class="meta-item">
+                        <mat-icon>category</mat-icon>
+                        <span>{{ video.categories.join(', ') }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="load-more-container">
+            @if (loadingMore) {
+              <div class="loading-more">
+                <mat-spinner diameter="40"></mat-spinner>
+                <p>Loading more favorites...</p>
+              </div>
+            }
+            @if (!loadingMore && !hasMoreVideos && filteredVideos.length > 0) {
+              <div class="end-of-content">
+                <mat-icon>check_circle</mat-icon>
+                <p>You've reached the end of your favorites list.</p>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      @if (filteredVideos.length === 0 && !searchQuery) {
+        <div class="empty-state">
+          <mat-icon class="empty-icon">favorite_border</mat-icon>
+          <h2>No favorites yet</h2>
+          <p>Videos you add to your favorites will appear here.</p>
+          <button mat-raised-button color="primary" routerLink="/home">
+            <mat-icon>explore</mat-icon> Discover Videos
+          </button>
+        </div>
+      }
+
+      @if (filteredVideos.length === 0 && searchQuery) {
+        <div class="empty-state">
+          <mat-icon class="empty-icon">search_off</mat-icon>
+          <h2>No results found</h2>
+          <p>We couldn't find any favorites matching "{{ searchQuery }}"</p>
+          <button mat-raised-button color="primary" (click)="clearSearch()">
+            <mat-icon>clear</mat-icon> Clear Search
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>
