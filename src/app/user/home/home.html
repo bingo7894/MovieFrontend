@@ -1,3 +1,183 @@
 <div class="dashboard-container">
   <app-header [showRouterOutlet]="false"></app-header>
+
+  @if (!featuredLoading && featuredVideos.length > 0) {
+    <section class="banner-slider">
+      <div class="slider-container">
+        <div class="slides">
+          @for (video of featuredVideos; track video.id; let i = $index) {
+            <div class="slide" [class.active]="i === currentSlideIndex">
+              <img class="banner-bg" [src]="getPosterUrl(video)" [alt]="video.title" />
+              <div class="banner-overlay"></div>
+              <div class="banner-content">
+                <h2 class="banner-title">{{ video.title }}</h2>
+                <p class="banner-description">{{ video.description || 'Watch now!' }}</p>
+                <div class="banner-actions">
+                  <button class="play-btn" (click)="playVideo(video)">
+                    <mat-icon>play_arrow</mat-icon> Play
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (featuredVideos.length > 1) {
+          <button class="slider-nav prev" (click)="prevSlide()">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          <button class="slider-nav next" (click)="nextSlide()">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+
+          <div class="slider-indicators">
+            @for (video of featuredVideos; track video.id; let i = $index) {
+              <button
+                class="indicator"
+                [class.active]="i === currentSlideIndex"
+                (click)="goToSlide(i)"
+                [attr.aria-label]="'Go to slide ' + (i + 1)"
+              ></button>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <div class="search-section">
+    <div class="search-container">
+      <mat-form-field appearance="outline" class="search-input">
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          placeholder="Search videos..."
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onSearch()"
+          (input)="onSearch()"
+        />
+        @if (searchQuery) {
+          <button mat-icon-button matSuffix (click)="clearSearch()">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+    </div>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" class="loading-bar"></mat-progress-bar>
+  }
+
+  @if (error && !loading) {
+    <div class="error-container">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <p>Failed to load videos. Please try again later.</p>
+      <button mat-raised-button color="primary" (click)="loadVideos()">
+        <mat-icon>refresh</mat-icon> Retry
+      </button>
+    </div>
+  }
+
+  @if (!loading && !error) {
+    <div class="content-section">
+      @if (filteredVideos.length > 0) {
+        <section class="video-section">
+          <h3 class="section-title">{{ searchQuery ? 'Search Results' : 'All Videos' }}</h3>
+          <div class="video-grid">
+            @for (video of filteredVideos; track video.id) {
+              <div class="video-card">
+                <div class="card-thumbnail" (click)="playVideo(video)">
+                  <img [src]="getPosterUrl(video)" [alt]="video.title" class="thumbnail-img" />
+                  <div class="thumbnail-overlay">
+                    <mat-icon class="play-icon">play_circle</mat-icon>
+                  </div>
+                  @if (video.duration) {
+                    <div class="duration-badge">
+                      {{ formatDuration(video.duration) }}
+                    </div>
+                  }
+                </div>
+
+                <div class="card-content">
+                  <div class="card-header">
+                    <h3 class="card-title" (click)="playVideo(video)">{{ video.title }}</h3>
+                    <button
+                      mat-icon-button
+                      class="watch-later-icon"
+                      (click)="toggleWatchlist(video, $event)"
+                      [class.active]="isInWatchlist(video)"
+                      [matTooltip]="
+                        isInWatchlist(video) ? 'Remove from My Favorites' : 'Add to My Favorites'
+                      "
+                    >
+                      <mat-icon>{{
+                        isInWatchlist(video) ? 'favorites' : 'favorites_border'
+                      }}</mat-icon>
+                    </button>
+                  </div>
+                  <p class="card-description">{{ video.description || 'No description' }}</p>
+
+                  <div class="card-meta">
+                    @if (video.year) {
+                      <div class="meta-item">
+                        <mat-icon>calendar_today</mat-icon>
+                        <span>{{ video.year }}</span>
+                      </div>
+                    }
+                    @if (video.rating) {
+                      <div class="meta-item">
+                        <mat-icon>star</mat-icon>
+                        <span>{{ video.rating }}</span>
+                      </div>
+                    }
+                    @if (video.categories && video.categories.length > 0) {
+                      <div class="meta-item">
+                        <mat-icon>category</mat-icon>
+                        <span>{{ video.categories.join(', ') }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="load-more-container">
+            @if (loadingMore) {
+              <div class="loading-more">
+                <mat-spinner diameter="40"></mat-spinner>
+                <p>Loading more videos...</p>
+              </div>
+            }
+            @if (!loadingMore && !hasMoreVideos && filteredVideos.length > 0) {
+              <div class="end-of-content">
+                <mat-icon>check_circle</mat-icon>
+                <p>You've reached the end! No more videos to load.</p>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      @if (filteredVideos.length === 0 && !searchQuery) {
+        <div class="empty-state">
+          <mat-icon class="empty-icon">video_library</mat-icon>
+          <h2>No videos available yet</h2>
+          <p>Check back later for new content!</p>
+        </div>
+      }
+
+      @if (filteredVideos.length === 0 && searchQuery) {
+        <div class="empty-state">
+          <mat-icon class="empty-icon">search_off</mat-icon>
+          <h2>No results found</h2>
+          <p>Try adjusting your search terms</p>
+          <button mat-raised-button color="primary" (click)="clearSearch()">
+            <mat-icon>clear</mat-icon> Clear Search
+          </button>
+        </div>
+      }
+    </div>
+  }
 </div>
