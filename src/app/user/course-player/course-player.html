@@ -1,0 +1,344 @@
+<div class="player-page">
+  <app-header [showRouterOutlet]="false"></app-header>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (!loading && course) {
+    <div class="course-topbar">
+      <div class="topbar-left">
+        <button mat-button (click)="backToCatalog()">
+          <mat-icon>arrow_back</mat-icon> Courses
+        </button>
+        <div class="course-heading">
+          <h1>{{ course.title }}</h1>
+          <span>{{ course.completedEpisodes }} / {{ course.episodeCount }} EPs completed ({{ course.progressPercent }}%)</span>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="progress-mini">
+          <mat-progress-bar mode="determinate" [value]="course.progressPercent"></mat-progress-bar>
+        </div>
+        <button mat-stroked-button color="primary" (click)="toggleEnrollment()">
+          <mat-icon>{{ course.enrolled ? 'bookmark' : 'bookmark_border' }}</mat-icon>
+          {{ course.enrolled ? 'In My Learning' : 'Save Course' }}
+        </button>
+      </div>
+    </div>
+
+    @if (flatEpisodes.length === 0) {
+      <div class="empty-course">
+        <mat-icon>menu_book</mat-icon>
+        <h2>No episodes published yet</h2>
+        <p>The instructor is still preparing episodes for this course.</p>
+      </div>
+    } @else if (currentEpisode) {
+      <div class="workspace-grid">
+        <div class="main-stage">
+          @if (videoUrl) {
+            <div class="video-frame">
+              <video
+                #lessonVideo
+                [src]="videoUrl"
+                controls
+                controlsList="nodownload"
+                preload="metadata"
+                (loadedmetadata)="onVideoLoadedMetadata()"
+                (timeupdate)="onVideoTimeUpdate()"
+                (pause)="flushVideoProgress(false)"
+                (ended)="onVideoEnded()"
+              ></video>
+            </div>
+          } @else {
+            <div class="no-video-banner">
+              <mat-icon>assignment</mat-icon>
+              <h2>EP {{ currentEpisode.episodeNumber }}: {{ currentEpisode.title }}</h2>
+              <p>This episode contains study materials and/or exercises below.</p>
+            </div>
+          }
+
+          <div class="ep-toolbar">
+            <div class="ep-title-info">
+              <span class="topic-crumb">{{ currentTopic?.title }} · EP {{ currentEpisode.episodeNumber }}</span>
+              <h2>{{ currentEpisode.title }}</h2>
+            </div>
+
+            <div class="ep-nav-actions">
+              <button
+                mat-stroked-button
+                [color]="currentEpisode.completed ? 'accent' : 'primary'"
+                (click)="toggleComplete()"
+              >
+                <mat-icon>{{ currentEpisode.completed ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                {{ currentEpisode.completed ? 'Completed' : 'Mark Complete' }}
+              </button>
+
+              <button mat-button (click)="goPreviousEpisode()" [disabled]="currentEpisodeIndex <= 0">
+                <mat-icon>skip_previous</mat-icon> Prev
+              </button>
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="goNextEpisode()"
+                [disabled]="currentEpisodeIndex >= flatEpisodes.length - 1"
+              >
+                Next EP <mat-icon>skip_next</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <mat-tab-group class="lesson-tabs" animationDuration="150ms">
+            <mat-tab label="Overview">
+              <div class="tab-panel">
+                <h3>About this Episode</h3>
+                <p>{{ currentEpisode.description || 'No lesson description provided.' }}</p>
+                <h4>Course Overview</h4>
+                <p class="muted">{{ course.description }}</p>
+              </div>
+            </mat-tab>
+
+            <mat-tab [label]="'Materials (' + currentEpisode.attachments.length + ')'">
+              <div class="tab-panel">
+                @if (currentEpisode.attachments.length === 0) {
+                  <p class="muted">No study materials attached to this episode.</p>
+                } @else {
+                  <div class="materials-list">
+                    @for (att of currentEpisode.attachments; track att.id) {
+                      <div class="material-item">
+                        <div class="mat-info">
+                          <mat-icon>description</mat-icon>
+                          <div>
+                            <strong>{{ att.originalFilename }}</strong>
+                            <span>{{ utilityService.formatFileSize(att.fileSize) }}</span>
+                          </div>
+                        </div>
+                        <div class="mat-actions">
+                          <button mat-stroked-button (click)="openMaterial(att, false)">
+                            <mat-icon>visibility</mat-icon> Preview
+                          </button>
+                          <button mat-raised-button color="primary" (click)="openMaterial(att, true)">
+                            <mat-icon>download</mat-icon> Download
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </mat-tab>
+
+            <mat-tab [label]="'Exercises (' + currentEpisode.quizzes.length + ')'">
+              <div class="tab-panel">
+                @if (currentEpisode.quizzes.length === 0) {
+                  <p class="muted">No exercises or quizzes for this episode.</p>
+                } @else {
+                  <div class="quiz-selector">
+                    @for (q of currentEpisode.quizzes; track q.id) {
+                      <div class="quiz-summary-card" [class.selected]="activeQuiz?.id === q.id">
+                        <div>
+                          <h4>{{ q.title }}</h4>
+                          <p>
+                            {{ q.questionCount }} Questions · Passing: {{ q.passingScore }}%
+                            @if (q.bestScore !== null && q.bestScore !== undefined) {
+                              · Best: <strong>{{ q.bestScore }}%</strong> ({{ q.passed ? 'Passed' : 'Not Passed' }})
+                            }
+                          </p>
+                        </div>
+                        <button mat-raised-button color="primary" (click)="startQuiz(q)">
+                          {{ activeQuiz?.id === q.id ? 'Restart Quiz' : 'Start Exercise' }}
+                        </button>
+                      </div>
+                    }
+                  </div>
+
+                  @if (quizLoading) {
+                    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                  }
+
+                  @if (activeQuiz && !quizLoading) {
+                    <div class="quiz-runner">
+                      <div class="quiz-runner-header">
+                        <h3>{{ activeQuiz.title }}</h3>
+                        @if (activeQuiz.description) {
+                          <p>{{ activeQuiz.description }}</p>
+                        }
+                      </div>
+
+                      @if (quizResult) {
+                        <div class="result-banner" [class.passed]="quizResult.passed">
+                          <div>
+                            <strong>{{ quizResult.passed ? 'Passed!' : 'Keep Practicing!' }}</strong>
+                            <span>
+                              Score: {{ quizResult.scorePercent }}% ({{ quizResult.correctCount }}/{{ quizResult.totalQuestions }} correct · Need {{ quizResult.passingScore }}%)
+                            </span>
+                          </div>
+                          <button mat-stroked-button (click)="startQuiz(activeQuiz)">Try Again</button>
+                        </div>
+
+                        <div class="review-list">
+                          @for (item of quizResult.questionResults; track item.questionId; let idx = $index) {
+                            <div class="review-card" [class.correct]="item.correct" [class.wrong]="!item.correct">
+                              <div class="review-head">
+                                <strong>Q{{ idx + 1 }}: {{ item.questionText }}</strong>
+                                <mat-icon>{{ item.correct ? 'check_circle' : 'cancel' }}</mat-icon>
+                              </div>
+                              @if (item.explanation) {
+                                <p class="explanation"><strong>Explanation:</strong> {{ item.explanation }}</p>
+                              }
+                            </div>
+                          }
+                        </div>
+                      } @else {
+                        <div class="questions-runner">
+                          @for (q of activeQuiz.questions; track q.id; let qIdx = $index) {
+                            <div class="runner-question">
+                              <h4>Q{{ qIdx + 1 }}. {{ q.questionText }}</h4>
+
+                              @if (q.questionType === 'TRUE_FALSE') {
+                                <mat-radio-group
+                                  class="radio-col"
+                                  [value]="(selectedAnswers[q.id] || [])[0]"
+                                  (change)="selectSingleOption(q.id, $event.value)"
+                                >
+                                  @for (opt of q.options; track opt.id) {
+                                    <mat-radio-button [value]="opt.id">{{ opt.optionText }}</mat-radio-button>
+                                  }
+                                </mat-radio-group>
+                              } @else {
+                                <div class="checks-col">
+                                  @for (opt of q.options; track opt.id) {
+                                    <mat-checkbox
+                                      color="primary"
+                                      [checked]="isOptionSelected(q.id, opt.id)"
+                                      (change)="toggleMultiOption(q.id, opt.id, $event.checked)"
+                                    >
+                                      {{ opt.optionText }}
+                                    </mat-checkbox>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
+
+                          <button
+                            mat-raised-button
+                            color="primary"
+                            (click)="submitQuiz()"
+                            [disabled]="submittingQuiz"
+                          >
+                            <mat-icon>send</mat-icon>
+                            {{ submittingQuiz ? 'Grading...' : 'Submit Answers' }}
+                          </button>
+                        </div>
+                      }
+
+                      @if (quizAttempts.length > 0) {
+                        <div class="attempts-box">
+                          <h4>Recent Attempts</h4>
+                          <div class="attempt-chips">
+                            @for (a of quizAttempts; track a.id) {
+                              <span class="attempt-pill" [class.passed]="a.passed">
+                                {{ a.scorePercent }}% ({{ a.correctCount }}/{{ a.totalQuestions }})
+                              </span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            </mat-tab>
+
+            <mat-tab [label]="'Notes (' + notes.length + ')'">
+              <div class="tab-panel">
+                <div class="note-composer">
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Write a note at {{ utilityService.formatDuration(currentVideoTime) }}</mat-label>
+                    <textarea matInput rows="2" [(ngModel)]="newNoteText" placeholder="Key takeaway or reminder..."></textarea>
+                  </mat-form-field>
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    (click)="addNote()"
+                    [disabled]="savingNote || !newNoteText.trim()"
+                  >
+                    <mat-icon>bookmark_add</mat-icon>
+                    Save Note ({{ utilityService.formatDuration(currentVideoTime) }})
+                  </button>
+                </div>
+
+                @if (notes.length > 0) {
+                  <div class="notes-list">
+                    @for (n of notes; track n.id) {
+                      <div class="note-item">
+                        <button mat-stroked-button class="time-chip" (click)="seekToNote(n.timestampSeconds)">
+                          <mat-icon>play_arrow</mat-icon> {{ utilityService.formatDuration(n.timestampSeconds) }}
+                        </button>
+                        <p>{{ n.content }}</p>
+                        <button mat-icon-button color="warn" (click)="deleteNote(n.id)">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </mat-tab>
+          </mat-tab-group>
+        </div>
+
+        <aside class="curriculum-sidebar">
+          <div class="sidebar-header">
+            <h3>Course Content</h3>
+            <span>{{ course.topicCount }} Topics · {{ course.episodeCount }} EPs</span>
+          </div>
+
+          <mat-accordion multi>
+            @for (topic of course.topics; track topic.id; let tIdx = $index) {
+              <mat-expansion-panel [expanded]="currentTopic?.id === topic.id || tIdx === 0">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>{{ tIdx + 1 }}. {{ topic.title }}</mat-panel-title>
+                  <mat-panel-description>
+                    {{ topic.completedEpisodes }}/{{ topic.episodes.length }}
+                  </mat-panel-description>
+                </mat-expansion-panel-header>
+
+                <div class="sidebar-episodes">
+                  @for (ep of topic.episodes; track ep.id) {
+                    <button
+                      class="ep-row"
+                      [class.active]="currentEpisode?.id === ep.id"
+                      [class.completed]="ep.completed"
+                      (click)="selectEpisode(topic, ep)"
+                    >
+                      <mat-icon class="ep-status-icon">
+                        {{ ep.completed ? 'check_circle' : currentEpisode?.id === ep.id ? 'play_circle' : 'radio_button_unchecked' }}
+                      </mat-icon>
+                      <div class="ep-row-text">
+                        <strong>EP {{ ep.episodeNumber }}: {{ ep.title }}</strong>
+                        <span class="ep-row-meta">
+                          @if (ep.duration) {
+                            {{ utilityService.formatDuration(ep.duration) }}
+                          }
+                          @if (ep.attachments.length) {
+                            · {{ ep.attachments.length }} files
+                          }
+                          @if (ep.quizzes.length) {
+                            · {{ ep.quizzes.length }} quiz
+                          }
+                        </span>
+                      </div>
+                    </button>
+                  }
+                </div>
+              </mat-expansion-panel>
+            }
+          </mat-accordion>
+        </aside>
+      </div>
+    }
+  }
+</div>

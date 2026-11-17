@@ -1,0 +1,108 @@
+<div class="lms-dialog">
+  <div class="dialog-header">
+    <h2>{{ isEditMode ? 'Edit Exercise / Quiz' : 'Create Exercise / Quiz' }}</h2>
+    <button mat-icon-button (click)="close()" type="button">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  <form [formGroup]="quizForm" class="dialog-body">
+    <div class="meta-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Quiz Title</mat-label>
+        <input matInput formControlName="title" placeholder="e.g. Chapter 1 Checkpoint Quiz" required />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Passing Score (%)</mat-label>
+        <input matInput type="number" min="0" max="100" formControlName="passingScore" required />
+      </mat-form-field>
+    </div>
+
+    <div class="desc-row">
+      <mat-form-field appearance="outline" class="flex-1">
+        <mat-label>Instructions / Description</mat-label>
+        <input matInput formControlName="description" placeholder="Optional instructions for learners..." />
+      </mat-form-field>
+
+      <div class="pub-toggle">
+        <span>Published</span>
+        <mat-slide-toggle formControlName="published" color="primary"></mat-slide-toggle>
+      </div>
+    </div>
+
+    <div class="questions-header">
+      <h3>Questions ({{ questions.length }})</h3>
+      <button mat-stroked-button color="primary" (click)="addQuestion()" type="button">
+        <mat-icon>add</mat-icon> Add Question
+      </button>
+    </div>
+
+    <div formArrayName="questions" class="questions-list">
+      @for (qCtrl of questions.controls; track $index; let qIdx = $index) {
+        <div [formGroupName]="qIdx" class="question-card">
+          <div class="q-top">
+            <span class="q-badge">Q{{ qIdx + 1 }}</span>
+            <mat-form-field appearance="outline" class="q-type">
+              <mat-label>Type</mat-label>
+              <mat-select formControlName="questionType" (selectionChange)="onTypeChange(qIdx, $event.value)">
+                <mat-option value="MULTIPLE_CHOICE">Multiple Choice</mat-option>
+                <mat-option value="TRUE_FALSE">True / False</mat-option>
+              </mat-select>
+            </mat-form-field>
+            @if (questions.length > 1) {
+              <button mat-icon-button color="warn" (click)="removeQuestion(qIdx)" type="button" matTooltip="Remove question">
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Question Text</mat-label>
+            <textarea matInput rows="2" formControlName="questionText" required></textarea>
+          </mat-form-field>
+
+          <div formArrayName="options" class="options-list">
+            @for (optCtrl of getOptions(qIdx).controls; track $index; let oIdx = $index) {
+              <div [formGroupName]="oIdx" class="option-row">
+                <mat-checkbox formControlName="correct" color="primary" matTooltip="Mark as correct answer"></mat-checkbox>
+                <mat-form-field appearance="outline" class="opt-input">
+                  <mat-label>Option {{ oIdx + 1 }}</mat-label>
+                  <input matInput formControlName="optionText" required />
+                </mat-form-field>
+                @if (getOptions(qIdx).length > 2) {
+                  <button mat-icon-button (click)="removeOption(qIdx, oIdx)" type="button">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="q-actions">
+            <button mat-button (click)="addOption(qIdx)" type="button">
+              <mat-icon>add_circle_outline</mat-icon> Add Option
+            </button>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Answer Explanation (shown after submission)</mat-label>
+            <input matInput formControlName="explanation" placeholder="Explain why the answer is correct..." />
+          </mat-form-field>
+        </div>
+      }
+    </div>
+  </form>
+
+  <div class="dialog-footer">
+    <button mat-button (click)="close()" type="button">Cancel</button>
+    <button mat-raised-button color="primary" (click)="onSave()" [disabled]="isSaving || quizForm.invalid" type="button">
+      <mat-icon>{{ isSaving ? 'hourglass_empty' : 'save' }}</mat-icon>
+      {{ isSaving ? 'Saving...' : 'Save Quiz' }}
+    </button>
+  </div>
+</div>

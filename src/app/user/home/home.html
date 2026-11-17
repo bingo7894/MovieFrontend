@@ -1,60 +1,46 @@
 <div class="dashboard-container">
   <app-header [showRouterOutlet]="false"></app-header>
 
-  @if (!featuredLoading && featuredVideos.length > 0) {
+  @if (!featuredLoading && featuredCourses.length > 0) {
     <section class="banner-slider">
-      <div class="slider-container">
-        <div class="slides">
-          @for (video of featuredVideos; track video.id; let i = $index) {
-            <div class="slide" [class.active]="i === currentSlideIndex">
-              <img class="banner-bg" [src]="getPosterUrl(video)" [alt]="video.title" />
-              <div class="banner-overlay"></div>
-              <div class="banner-content">
-                <h2 class="banner-title">{{ video.title }}</h2>
-                <p class="banner-description">{{ video.description || 'Watch now!' }}</p>
-                <div class="banner-actions">
-                  <button class="play-btn" (click)="playVideo(video)">
-                    <mat-icon>play_arrow</mat-icon> Play
-                  </button>
-                </div>
+      @for (course of featuredCourses; track course.id; let i = $index) {
+        @if (i === currentSlideIndex) {
+          <div class="slide">
+            @if (getThumbnailUrl(course)) {
+              <img class="banner-bg" [src]="getThumbnailUrl(course)" [alt]="course.title" />
+            }
+            <div class="banner-overlay"></div>
+            <div class="banner-content">
+              <span class="banner-tag">{{ course.category || 'Featured Course' }} · {{ course.level }}</span>
+              <h2 class="banner-title">{{ course.title }}</h2>
+              <p class="banner-description">{{ course.description || 'Start learning today!' }}</p>
+              <div class="banner-actions">
+                <button mat-raised-button color="primary" (click)="openCourse(course)">
+                  <mat-icon>play_arrow</mat-icon>
+                  {{ course.completedEpisodes > 0 ? 'Continue Learning' : 'Start Learning' }}
+                </button>
               </div>
             </div>
-          }
-        </div>
-
-        @if (featuredVideos.length > 1) {
-          <button class="slider-nav prev" (click)="prevSlide()">
-            <mat-icon>chevron_left</mat-icon>
-          </button>
-          <button class="slider-nav next" (click)="nextSlide()">
-            <mat-icon>chevron_right</mat-icon>
-          </button>
-
-          <div class="slider-indicators">
-            @for (video of featuredVideos; track video.id; let i = $index) {
-              <button
-                class="indicator"
-                [class.active]="i === currentSlideIndex"
-                (click)="goToSlide(i)"
-                [attr.aria-label]="'Go to slide ' + (i + 1)"
-              ></button>
-            }
           </div>
         }
-      </div>
+      }
+      @if (featuredCourses.length > 1) {
+        <button class="slider-nav prev" (click)="prevSlide()"><mat-icon>chevron_left</mat-icon></button>
+        <button class="slider-nav next" (click)="nextSlide()"><mat-icon>chevron_right</mat-icon></button>
+      }
     </section>
   }
 
-  <div class="search-section">
-    <div class="search-container">
-      <mat-form-field appearance="outline" class="search-input">
+  <div class="catalog-wrap">
+    <div class="filter-bar">
+      <mat-form-field appearance="outline" class="search-field">
         <mat-icon matPrefix>search</mat-icon>
         <input
           matInput
-          placeholder="Search videos..."
+          placeholder="Search courses..."
           [(ngModel)]="searchQuery"
-          (keyup.enter)="onSearch()"
           (input)="onSearch()"
+          (keyup.enter)="loadCourses()"
         />
         @if (searchQuery) {
           <button mat-icon-button matSuffix (click)="clearSearch()">
@@ -62,122 +48,101 @@
           </button>
         }
       </mat-form-field>
-    </div>
-  </div>
 
-  @if (loading) {
-    <mat-progress-bar mode="indeterminate" class="loading-bar"></mat-progress-bar>
-  }
-
-  @if (error && !loading) {
-    <div class="error-container">
-      <mat-icon class="error-icon">error_outline</mat-icon>
-      <p>Failed to load videos. Please try again later.</p>
-      <button mat-raised-button color="primary" (click)="loadVideos()">
-        <mat-icon>refresh</mat-icon> Retry
-      </button>
-    </div>
-  }
-
-  @if (!loading && !error) {
-    <div class="content-section">
-      @if (filteredVideos.length > 0) {
-        <section class="video-section">
-          <h3 class="section-title">{{ searchQuery ? 'Search Results' : 'All Videos' }}</h3>
-          <div class="video-grid">
-            @for (video of filteredVideos; track video.id) {
-              <div class="video-card">
-                <div class="card-thumbnail" (click)="playVideo(video)">
-                  <img [src]="getPosterUrl(video)" [alt]="video.title" class="thumbnail-img" />
-                  <div class="thumbnail-overlay">
-                    <mat-icon class="play-icon">play_circle</mat-icon>
-                  </div>
-                  @if (video.duration) {
-                    <div class="duration-badge">
-                      {{ formatDuration(video.duration) }}
-                    </div>
-                  }
-                </div>
-
-                <div class="card-content">
-                  <div class="card-header">
-                    <h3 class="card-title" (click)="playVideo(video)">{{ video.title }}</h3>
-                    <button
-                      mat-icon-button
-                      class="watch-later-icon"
-                      (click)="toggleWatchlist(video, $event)"
-                      [class.active]="isInWatchlist(video)"
-                      [matTooltip]="
-                        isInWatchlist(video) ? 'Remove from My Favorites' : 'Add to My Favorites'
-                      "
-                    >
-                      <mat-icon>{{
-                        isInWatchlist(video) ? 'favorites' : 'favorites_border'
-                      }}</mat-icon>
-                    </button>
-                  </div>
-                  <p class="card-description">{{ video.description || 'No description' }}</p>
-
-                  <div class="card-meta">
-                    @if (video.year) {
-                      <div class="meta-item">
-                        <mat-icon>calendar_today</mat-icon>
-                        <span>{{ video.year }}</span>
-                      </div>
-                    }
-                    @if (video.rating) {
-                      <div class="meta-item">
-                        <mat-icon>star</mat-icon>
-                        <span>{{ video.rating }}</span>
-                      </div>
-                    }
-                    @if (video.categories && video.categories.length > 0) {
-                      <div class="meta-item">
-                        <mat-icon>category</mat-icon>
-                        <span>{{ video.categories.join(', ') }}</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-
-          <div class="load-more-container">
-            @if (loadingMore) {
-              <div class="loading-more">
-                <mat-spinner diameter="40"></mat-spinner>
-                <p>Loading more videos...</p>
-              </div>
-            }
-            @if (!loadingMore && !hasMoreVideos && filteredVideos.length > 0) {
-              <div class="end-of-content">
-                <mat-icon>check_circle</mat-icon>
-                <p>You've reached the end! No more videos to load.</p>
-              </div>
-            }
-          </div>
-        </section>
-      }
-
-      @if (filteredVideos.length === 0 && !searchQuery) {
-        <div class="empty-state">
-          <mat-icon class="empty-icon">video_library</mat-icon>
-          <h2>No videos available yet</h2>
-          <p>Check back later for new content!</p>
-        </div>
-      }
-
-      @if (filteredVideos.length === 0 && searchQuery) {
-        <div class="empty-state">
-          <mat-icon class="empty-icon">search_off</mat-icon>
-          <h2>No results found</h2>
-          <p>Try adjusting your search terms</p>
-          <button mat-raised-button color="primary" (click)="clearSearch()">
-            <mat-icon>clear</mat-icon> Clear Search
+      <div class="category-chips">
+        <button
+          mat-stroked-button
+          [class.active-chip]="!selectedCategory"
+          (click)="selectCategory('')"
+        >
+          All
+        </button>
+        @for (cat of categories; track cat) {
+          <button
+            mat-stroked-button
+            [class.active-chip]="selectedCategory === cat"
+            (click)="selectCategory(cat)"
+          >
+            {{ cat }}
           </button>
+        }
+      </div>
+    </div>
+
+    @if (loading) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+
+    @if (error && !loading) {
+      <div class="empty-state">
+        <mat-icon>error_outline</mat-icon>
+        <p>Failed to load courses.</p>
+        <button mat-raised-button color="primary" (click)="loadCourses()">Retry</button>
+      </div>
+    }
+
+    @if (!loading && !error) {
+      @if (courses.length > 0) {
+        <h3 class="section-title">
+          {{ selectedCategory || (searchQuery ? 'Search Results' : 'Available Courses') }} ({{ totalElements }})
+        </h3>
+        <div class="course-grid">
+          @for (course of courses; track course.id) {
+            <div class="course-card" (click)="openCourse(course)">
+              <div class="card-thumb">
+                @if (getThumbnailUrl(course)) {
+                  <img [src]="getThumbnailUrl(course)" [alt]="course.title" />
+                } @else {
+                  <div class="thumb-placeholder"><mat-icon>school</mat-icon></div>
+                }
+                <span class="level-badge">{{ course.level }}</span>
+                @if (course.totalDuration) {
+                  <span class="duration-badge">{{ utilityService.formatDuration(course.totalDuration) }}</span>
+                }
+              </div>
+
+              <div class="card-body">
+                <div class="card-top">
+                  <span class="category-label">{{ course.category || 'General' }}</span>
+                  <button
+                    mat-icon-button
+                    (click)="toggleEnrollment(course, $event)"
+                    [matTooltip]="course.enrolled ? 'Remove from My Learning' : 'Save to My Learning'"
+                  >
+                    <mat-icon [class.enrolled]="course.enrolled">
+                      {{ course.enrolled ? 'bookmark' : 'bookmark_border' }}
+                    </mat-icon>
+                  </button>
+                </div>
+
+                <h3>{{ course.title }}</h3>
+                <p class="desc">{{ course.description || 'No description' }}</p>
+
+                <div class="card-meta">
+                  <span><mat-icon>folder</mat-icon> {{ course.topicCount }} Topics</span>
+                  <span><mat-icon>play_circle</mat-icon> {{ course.episodeCount }} EPs</span>
+                </div>
+
+                @if (course.episodeCount > 0) {
+                  <div class="progress-wrap">
+                    <div class="progress-text">
+                      <span>Progress</span>
+                      <span>{{ course.completedEpisodes }}/{{ course.episodeCount }} ({{ course.progressPercent }}%)</span>
+                    </div>
+                    <mat-progress-bar mode="determinate" [value]="course.progressPercent"></mat-progress-bar>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <mat-icon>school</mat-icon>
+          <h2>No courses found</h2>
+          <p>{{ searchQuery || selectedCategory ? 'Try clearing filters' : 'Courses will appear here once published by an instructor.' }}</p>
         </div>
       }
-    </div>
-  }
+    }
+  </div>
 </div>

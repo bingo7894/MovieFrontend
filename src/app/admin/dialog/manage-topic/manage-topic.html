@@ -1,0 +1,36 @@
+<div class="lms-dialog">
+  <div class="dialog-header">
+    <h2>{{ isEditMode ? 'Edit Topic' : 'Add New Topic' }}</h2>
+    <button mat-icon-button (click)="close()" type="button">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <form [formGroup]="topicForm" class="dialog-body">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Topic Title</mat-label>
+      <input matInput formControlName="title" placeholder="e.g. Chapter 1: REST API Fundamentals" required />
+      @if (topicForm.get('title')?.hasError('required')) {
+        <mat-error>Topic title is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Description (optional)</mat-label>
+      <textarea matInput rows="3" formControlName="description" placeholder="Brief summary of this topic..."></textarea>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Order</mat-label>
+      <input matInput type="number" min="1" formControlName="sortOrder" required />
+    </mat-form-field>
+  </form>
+
+  <div class="dialog-footer">
+    <button mat-button (click)="close()" type="button">Cancel</button>
+    <button mat-raised-button color="primary" (click)="onSave()" [disabled]="isSaving || topicForm.invalid" type="button">
+      <mat-icon>{{ isSaving ? 'hourglass_empty' : 'save' }}</mat-icon>
+      {{ isSaving ? 'Saving...' : 'Save Topic' }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,201 @@
+<div class="curriculum-container">
+  <div class="top-bar">
+    <button mat-button (click)="backToCourses()">
+      <mat-icon>arrow_back</mat-icon> Back to Courses
+    </button>
+
+    @if (course) {
+      <div class="course-title-box">
+        <h1>{{ course.title }}</h1>
+        <span class="badge">{{ course.category }} · {{ course.level }}</span>
+        <span class="badge" [class.pub]="course.published">
+          {{ course.published ? 'Published' : 'Draft' }}
+        </span>
+      </div>
+
+      <button mat-raised-button color="primary" (click)="addTopic()">
+        <mat-icon>create_new_folder</mat-icon> Add Topic (หัวข้อ)
+      </button>
+    }
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (!loading && course) {
+    @if (course.topics.length === 0) {
+      <div class="empty-state">
+        <mat-icon>folder_open</mat-icon>
+        <h2>No topics yet</h2>
+        <p>Start organizing your course into topics (e.g. Chapter 1, Chapter 2) and add EPs inside each.</p>
+        <button mat-raised-button color="primary" (click)="addTopic()">
+          <mat-icon>add</mat-icon> Add First Topic
+        </button>
+      </div>
+    } @else {
+      <div class="topics-list">
+        @for (topic of course.topics; track topic.id; let tIdx = $index) {
+          <div class="topic-card">
+            <div class="topic-header">
+              <div class="topic-info">
+                <span class="order-chip">Topic {{ tIdx + 1 }}</span>
+                <div>
+                  <h2>{{ topic.title }}</h2>
+                  @if (topic.description) {
+                    <p>{{ topic.description }}</p>
+                  }
+                </div>
+              </div>
+
+              <div class="topic-actions">
+                <button mat-icon-button (click)="moveTopic(tIdx, -1)" [disabled]="tIdx === 0" matTooltip="Move Up">
+                  <mat-icon>arrow_upward</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  (click)="moveTopic(tIdx, 1)"
+                  [disabled]="tIdx === course.topics.length - 1"
+                  matTooltip="Move Down"
+                >
+                  <mat-icon>arrow_downward</mat-icon>
+                </button>
+                <button mat-stroked-button color="primary" (click)="addEpisode(topic)">
+                  <mat-icon>add_circle</mat-icon> Add EP
+                </button>
+                <button mat-icon-button (click)="editTopic(topic)" matTooltip="Edit Topic">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="deleteTopic(topic)" matTooltip="Delete Topic">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <div class="episodes-list">
+              @if (topic.episodes.length === 0) {
+                <div class="no-episodes">
+                  <span>No EPs in this topic yet.</span>
+                  <button mat-button color="primary" (click)="addEpisode(topic)">+ Add EP</button>
+                </div>
+              }
+
+              @for (ep of topic.episodes; track ep.id; let eIdx = $index) {
+                <div class="ep-card">
+                  <div class="ep-main">
+                    <div class="ep-left">
+                      <span class="ep-number">EP {{ ep.episodeNumber }}</span>
+                      <div>
+                        <h4>
+                          {{ ep.title }}
+                          @if (!ep.published) {
+                            <span class="mini-tag draft">Draft</span>
+                          }
+                          @if (ep.freePreview) {
+                            <span class="mini-tag preview">Preview</span>
+                          }
+                        </h4>
+                        <div class="ep-meta">
+                          @if (ep.videoUuid) {
+                            <span><mat-icon>videocam</mat-icon> Video ({{ utilityService.formatDuration(ep.duration) }})</span>
+                          } @else {
+                            <span><mat-icon>article</mat-icon> No Video (Exercise / Reading)</span>
+                          }
+                          <span><mat-icon>attach_file</mat-icon> {{ ep.attachments.length }} Files</span>
+                          <span><mat-icon>quiz</mat-icon> {{ ep.quizzes.length }} Quizzes</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="ep-actions">
+                      <button mat-icon-button (click)="moveEpisode(topic, eIdx, -1)" [disabled]="eIdx === 0" matTooltip="Move Up">
+                        <mat-icon>arrow_upward</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        (click)="moveEpisode(topic, eIdx, 1)"
+                        [disabled]="eIdx === topic.episodes.length - 1"
+                        matTooltip="Move Down"
+                      >
+                        <mat-icon>arrow_downward</mat-icon>
+                      </button>
+                      <button mat-icon-button (click)="editEpisode(topic, ep)" matTooltip="Edit EP">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button color="warn" (click)="deleteEpisode(ep)" matTooltip="Delete EP">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="ep-extras">
+                    <div class="extra-block">
+                      <div class="extra-header">
+                        <strong><mat-icon>attach_file</mat-icon> Learning Materials</strong>
+                        <label class="upload-inline-btn">
+                          <input type="file" (change)="onAttachmentPicked($event, ep)" hidden />
+                          <mat-icon>upload_file</mat-icon> Attach File
+                        </label>
+                      </div>
+
+                      @if (uploadingEpisodeId === ep.id) {
+                        <mat-progress-bar [value]="uploadProgress" mode="determinate"></mat-progress-bar>
+                      }
+
+                      @if (ep.attachments.length > 0) {
+                        <div class="chips-wrap">
+                          @for (att of ep.attachments; track att.id) {
+                            <div class="item-pill">
+                              <span class="pill-name" (click)="openAttachment(att, false)">
+                                <mat-icon>description</mat-icon>
+                                {{ att.originalFilename }} ({{ utilityService.formatFileSize(att.fileSize) }})
+                              </span>
+                              <button mat-icon-button (click)="openAttachment(att, true)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
+                              <button mat-icon-button color="warn" (click)="deleteAttachment(att)" matTooltip="Remove">
+                                <mat-icon>close</mat-icon>
+                              </button>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+
+                    <div class="extra-block">
+                      <div class="extra-header">
+                        <strong><mat-icon>quiz</mat-icon> Exercises / Quizzes</strong>
+                        <button mat-button color="primary" (click)="addQuiz(ep)">
+                          <mat-icon>add</mat-icon> Add Quiz
+                        </button>
+                      </div>
+
+                      @if (ep.quizzes.length > 0) {
+                        <div class="chips-wrap">
+                          @for (q of ep.quizzes; track q.id) {
+                            <div class="item-pill">
+                              <span class="pill-name" (click)="editQuiz(ep, q)">
+                                <mat-icon>assignment</mat-icon>
+                                {{ q.title }} ({{ q.questionCount }} Qs · Pass {{ q.passingScore }}%)
+                              </span>
+                              <button mat-icon-button (click)="editQuiz(ep, q)" matTooltip="Edit Quiz">
+                                <mat-icon>edit</mat-icon>
+                              </button>
+                              <button mat-icon-button color="warn" (click)="deleteQuiz(q)" matTooltip="Delete Quiz">
+                                <mat-icon>close</mat-icon>
+                              </button>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

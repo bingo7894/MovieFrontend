@@ -14,12 +14,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         Authorization: `Bearer ${token}`,
       },
     });
-  } else {
-    console.log('No token found,request sent without auth');
   }
+
   return next(request).pipe(
     catchError((error) => {
-      if (error.status === 401 || error.status === 400) {
+      if (error.status === 401) {
         authService.logout();
       }
       return throwError(() => error);

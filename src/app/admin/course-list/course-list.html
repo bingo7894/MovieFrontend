@@ -1,0 +1,141 @@
+<div class="course-list-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">LMS Course Studio</h1>
+      <p class="page-subtitle">Create courses, organize topics & EPs, attach study materials, and build quizzes</p>
+    </div>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="createNew()">
+        <mat-icon>add_circle</mat-icon> Create Course
+      </button>
+      <button mat-icon-button (click)="load()" [disabled]="loading" matTooltip="Refresh">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <mat-icon>menu_book</mat-icon>
+      <div>
+        <strong>{{ stats.totalCourses }}</strong>
+        <span>Courses ({{ stats.publishedCourses }} published)</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <mat-icon>folder_open</mat-icon>
+      <div>
+        <strong>{{ stats.totalTopics }}</strong>
+        <span>Topics</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <mat-icon>ondemand_video</mat-icon>
+      <div>
+        <strong>{{ stats.totalEpisodes }}</strong>
+        <span>Episodes (EP)</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <mat-icon>quiz</mat-icon>
+      <div>
+        <strong>{{ stats.totalQuizzes }}</strong>
+        <span>Exercises / Quizzes</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <mat-icon>schedule</mat-icon>
+      <div>
+        <strong>{{ utilityService.formatDuration(stats.totalDuration) }}</strong>
+        <span>Total Video Time</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <mat-icon>search</mat-icon>
+    <input
+      type="text"
+      placeholder="Search courses by title, description, or category..."
+      [(ngModel)]="searchQuery"
+      (input)="onSearchChange($event)"
+    />
+    @if (searchQuery) {
+      <button mat-icon-button (click)="clearSearch()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+    <span class="search-count">{{ courses.length }} / {{ totalElements }}</span>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (!loading && courses.length > 0) {
+    <div class="course-grid">
+      @for (c of courses; track c.id) {
+        <div class="course-card">
+          <div class="card-thumb" (click)="manageCurriculum(c)">
+            @if (getThumbnailUrl(c)) {
+              <img [src]="getThumbnailUrl(c)" [alt]="c.title" />
+            } @else {
+              <div class="thumb-placeholder">
+                <mat-icon>school</mat-icon>
+              </div>
+            }
+            <span class="status-badge" [class.published]="c.published">
+              {{ c.published ? 'Published' : 'Draft' }}
+            </span>
+            <span class="level-badge">{{ c.level }}</span>
+          </div>
+
+          <div class="card-body">
+            <div class="category-tag">{{ c.category || 'General' }}</div>
+            <h3 (click)="manageCurriculum(c)">{{ c.title }}</h3>
+            <p class="desc">{{ c.description || 'No description' }}</p>
+
+            <div class="meta-row">
+              <span><mat-icon>folder</mat-icon> {{ c.topicCount }} Topics</span>
+              <span><mat-icon>play_circle</mat-icon> {{ c.episodeCount }} EPs</span>
+              <span><mat-icon>schedule</mat-icon> {{ utilityService.formatDuration(c.totalDuration) }}</span>
+            </div>
+
+            <div class="card-footer">
+              <mat-slide-toggle color="primary" [checked]="c.published" (change)="togglePublish($event, c)">
+                {{ c.published ? 'Published' : 'Draft' }}
+              </mat-slide-toggle>
+
+              <div class="actions">
+                <button mat-raised-button color="primary" (click)="manageCurriculum(c)">
+                  <mat-icon>account_tree</mat-icon> Curriculum
+                </button>
+                <button mat-icon-button (click)="edit(c)" matTooltip="Edit Course Info">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                @if (!c.published) {
+                  <button mat-icon-button color="warn" (click)="remove(c)" matTooltip="Delete Course">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (!loading && courses.length === 0) {
+    <div class="empty-state">
+      <mat-icon>school</mat-icon>
+      <h2>{{ searchQuery ? 'No matching courses' : 'No courses created yet' }}</h2>
+      <p>{{ searchQuery ? 'Try a different search keyword' : 'Create your first course and start adding topics and EPs' }}</p>
+      @if (!searchQuery) {
+        <button mat-raised-button color="primary" (click)="createNew()">
+          <mat-icon>add_circle</mat-icon> Create Course
+        </button>
+      }
+    </div>
+  }
+</div>

@@ -1,38 +1,23 @@
-export const VIDEO_CATEGORIES = [
-  'Action',
-  'Drama',
-  'Comedy',
-  'Sci-Fi',
-  'Thriller',
-  'Documentary',
-  'Horror',
-  'Romance',
-  'Adventure',
-  'Fantasy',
-  'Animation',
-  'Crime',
-  'Mystery',
-  'Biography',
-  'History',
-  'War',
-  'Western',
-  'Musical',
-  'Sport',
-  'Family',
+export const COURSE_CATEGORIES = [
+  'Programming',
+  'Web Development',
+  'Backend & APIs',
+  'Database & SQL',
+  'DevOps & Cloud',
+  'Mobile Development',
+  'UI/UX Design',
+  'Data Science & AI',
+  'Business',
+  'General',
 ];
 
-export const RATINGS = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
+export const COURSE_LEVELS = [
+  { value: 'BEGINNER', label: 'Beginner' },
+  { value: 'INTERMEDIATE', label: 'Intermediate' },
+  { value: 'ADVANCED', label: 'Advanced' },
+];
 
 export const DIALOG_CONFIG = {
-  VIDEO_PLAYER: {
-    width: '100vw',
-    height: '100vh',
-    maxWidth: '100vw',
-    maxHeight: '100vh',
-    panelClass: 'video-player-dialog',
-    hasBackdrop: true,
-    disableClose: false,
-  },
   CHANGE_PASSWORD: {
     width: '600px',
     maxWidth: '90vw',
@@ -53,11 +38,33 @@ export const DIALOG_CONFIG = {
     hasBackdrop: true,
     disableClose: false,
   },
-  VIDEO_FORM: {
+  COURSE_FORM: {
+    width: '900px',
+    maxWidth: '95vw',
+    maxHeight: '92vh',
+    panelClass: 'video-form-dialog',
+    hasBackdrop: true,
+    disableClose: false,
+  },
+  TOPIC_FORM: {
+    width: '600px',
+    maxWidth: '95vw',
+    panelClass: 'user-dialog',
+    hasBackdrop: true,
+    disableClose: false,
+  },
+  EPISODE_FORM: {
+    width: '900px',
+    maxWidth: '95vw',
+    maxHeight: '92vh',
+    panelClass: 'video-form-dialog',
+    hasBackdrop: true,
+    disableClose: false,
+  },
+  QUIZ_BUILDER: {
     width: '95vw',
-    maxWidth: '1400px',
-    height: 'auto',
-    maxHeight: '95vh',
+    maxWidth: '1050px',
+    maxHeight: '92vh',
     panelClass: 'video-form-dialog',
     hasBackdrop: true,
     disableClose: false,

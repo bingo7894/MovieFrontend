@@ -1,0 +1,122 @@
+.lms-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.dialog-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.dialog-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 12px;
+}
+.desc-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.flex-1 {
+  flex: 1;
+}
+.pub-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.questions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.questions-header h3 {
+  margin: 0;
+}
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.question-card {
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.q-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.q-badge {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.q-type {
+  width: 200px;
+  margin-right: auto;
+}
+.full-width {
+  width: 100%;
+}
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.opt-input {
+  flex: 1;
+}
+.q-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 640px) {
+  .meta-grid,
+  .desc-row {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

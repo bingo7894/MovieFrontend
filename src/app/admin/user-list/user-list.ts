@@ -154,7 +154,7 @@ export class UserList implements OnInit {
     this.dialogService
       .openConfirmation(
         'Delete User',
-        `Are you sure you want to delete user ${user.fullname}? This action cannot be undone.`,
+        `Are you sure you want to delete user ${user.fullName || user.email}? This action cannot be undone.`,
         'Delete',
         'Cancel',
         'danger',
@@ -180,7 +180,7 @@ export class UserList implements OnInit {
     this.dialogService
       .openConfirmation(
         'Change User Role?',
-        `Are you sure you want to change ${user.fullname}'s role to ${newRole}?`,
+        `Are you sure you want to change ${user.fullName || user.email}'s role to ${newRole}?`,
         'Change Role',
         'Cancel',
         'warning',

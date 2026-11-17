@@ -1,0 +1,90 @@
+<div class="lms-dialog">
+  <div class="dialog-header">
+    <h2>{{ isEditMode ? 'Edit Course' : 'Create New Course' }}</h2>
+    <button mat-icon-button (click)="close()" type="button">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <form [formGroup]="courseForm" class="dialog-body">
+    <div class="thumb-section">
+      @if (!thumbnailPreviewUrl) {
+        <label class="upload-box">
+          <input type="file" accept="image/*" (change)="onThumbnailPicked($event)" hidden />
+          <mat-icon>add_photo_alternate</mat-icon>
+          <span>Upload Course Cover Image</span>
+          <small>Recommended 16:9 JPG or PNG</small>
+        </label>
+      } @else {
+        <div class="thumb-preview">
+          <img [src]="thumbnailPreviewUrl" alt="Course cover" />
+          <button mat-icon-button class="remove-btn" (click)="removeThumbnail()" type="button">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      }
+
+      @if (uploadProgress > 0 && uploadProgress < 100) {
+        <mat-progress-bar [value]="uploadProgress" mode="determinate"></mat-progress-bar>
+      }
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Course Title</mat-label>
+      <input matInput formControlName="title" placeholder="e.g. Full-Stack Spring Boot & Angular" required />
+      @if (courseForm.get('title')?.hasError('required')) {
+        <mat-error>Course title is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Description</mat-label>
+      <textarea matInput rows="4" formControlName="description" placeholder="What students will learn..." required></textarea>
+      @if (courseForm.get('description')?.hasError('required')) {
+        <mat-error>Description is required</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="row-2">
+      <mat-form-field appearance="outline">
+        <mat-label>Category</mat-label>
+        <mat-select formControlName="category" required>
+          @for (cat of categories; track cat) {
+            <mat-option [value]="cat">{{ cat }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Level</mat-label>
+        <mat-select formControlName="level" required>
+          @for (lvl of levels; track lvl.value) {
+            <mat-option [value]="lvl.value">{{ lvl.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="publish-row">
+      <div>
+        <strong>Publish Course</strong>
+        <p>{{ courseForm.value.published ? 'Visible to all students' : 'Draft mode (Admins only)' }}</p>
+      </div>
+      <mat-slide-toggle formControlName="published" color="primary"></mat-slide-toggle>
+    </div>
+  </form>
+
+  <div class="dialog-footer">
+    <button mat-button (click)="close()" type="button">Cancel</button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onSave()"
+      [disabled]="isSaving || courseForm.invalid || (uploadProgress > 0 && uploadProgress < 100)"
+      type="button"
+    >
+      <mat-icon>{{ isSaving ? 'hourglass_empty' : 'save' }}</mat-icon>
+      {{ isSaving ? 'Saving...' : 'Save Course' }}
+    </button>
+  </div>
+</div>

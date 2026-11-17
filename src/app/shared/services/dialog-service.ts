@@ -4,10 +4,11 @@ import { ChangePasswordDialog } from '../components/change-password-dialog/chang
 import { DIALOG_CONFIG } from '../constants/app.constants';
 import { Observable } from 'rxjs';
 import { ConfirmDialog } from '../components/confirm-dialog/confirm-dialog';
-import { ManageVideo } from '../../admin/dialog/manage-video/manage-video';
-import { VideoPlayer } from '../components/video-player/video-player';
-import { DialogConfig } from '@angular/cdk/dialog';
 import { MangeUser } from '../../admin/dialog/mange-user/mange-user';
+import { ManageCourse } from '../../admin/dialog/manage-course/manage-course';
+import { ManageTopic } from '../../admin/dialog/manage-topic/manage-topic';
+import { ManageEpisode } from '../../admin/dialog/manage-episode/manage-episode';
+import { QuizBuilder } from '../../admin/dialog/quiz-builder/quiz-builder';
 
 @Injectable({
   providedIn: 'root',
@@ -28,36 +29,53 @@ export class DialogService {
   ): Observable<boolean> {
     const dialogRef = this.dialog.open(ConfirmDialog, {
       ...DIALOG_CONFIG.CONFIRM,
-      data: {
-        title,
-        message,
-        confirmText,
-        cancelText,
-        type,
-      },
+      data: { title, message, confirmText, cancelText, type },
     });
-
     return dialogRef.afterClosed();
-  }
-
-  openVideoFormDialog(mode: 'create' | 'edit', video?: any): MatDialogRef<ManageVideo> {
-    return this.dialog.open(ManageVideo, {
-      ...DIALOG_CONFIG.VIDEO_FORM,
-      data: { mode, video },
-    });
-  }
-
-  openVideoPlayer(video: any): MatDialogRef<VideoPlayer> {
-    return this.dialog.open(VideoPlayer, {
-      data: video,
-      ...DIALOG_CONFIG.VIDEO_PLAYER,
-    });
   }
 
   openManageUserDialog(mode: 'create' | 'edit', user?: any): MatDialogRef<MangeUser> {
     return this.dialog.open(MangeUser, {
       ...DIALOG_CONFIG.MANAGE_USER,
       data: { mode, user },
+    });
+  }
+
+  openCourseFormDialog(mode: 'create' | 'edit', course?: any): MatDialogRef<ManageCourse> {
+    return this.dialog.open(ManageCourse, {
+      ...DIALOG_CONFIG.COURSE_FORM,
+      data: { mode, course },
+    });
+  }
+
+  openTopicFormDialog(
+    mode: 'create' | 'edit',
+    courseId: number,
+    topic?: any,
+    nextOrder?: number,
+  ): MatDialogRef<ManageTopic> {
+    return this.dialog.open(ManageTopic, {
+      ...DIALOG_CONFIG.TOPIC_FORM,
+      data: { mode, courseId, topic, nextOrder },
+    });
+  }
+
+  openEpisodeFormDialog(
+    mode: 'create' | 'edit',
+    topicId: number,
+    episode?: any,
+    nextEpisodeNumber?: number,
+  ): MatDialogRef<ManageEpisode> {
+    return this.dialog.open(ManageEpisode, {
+      ...DIALOG_CONFIG.EPISODE_FORM,
+      data: { mode, topicId, episode, nextEpisodeNumber },
+    });
+  }
+
+  openQuizBuilderDialog(episodeId: number, quizId?: number): MatDialogRef<QuizBuilder> {
+    return this.dialog.open(QuizBuilder, {
+      ...DIALOG_CONFIG.QUIZ_BUILDER,
+      data: { episodeId, quizId },
     });
   }
 }

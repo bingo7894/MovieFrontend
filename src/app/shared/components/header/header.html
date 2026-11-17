@@ -2,16 +2,16 @@
   <header class="header">
     <div class="header-content">
       <div class="logo">
-        <mat-icon class="logo-icon">movie</mat-icon>
-        <span class="logo-text">PulseScreen{{ isAdminMode ? 'Admin' : '' }}</span>
+        <mat-icon class="logo-icon">school</mat-icon>
+        <span class="logo-text">PulseLearn{{ isAdminMode ? ' Admin' : ' LMS' }}</span>
       </div>
 
       <div class="header-right">
         @if (isAdminMode) {
           <nav class="nav">
-            <a mat-button routerLink="videos" routerLinkActive="active" class="nav-link">
-              <mat-icon>video_library</mat-icon>
-              <span>Videos</span>
+            <a mat-button routerLink="courses" routerLinkActive="active" class="nav-link">
+              <mat-icon>menu_book</mat-icon>
+              <span>Courses</span>
             </a>
 
             <a mat-button routerLink="users" routerLinkActive="active" class="nav-link">
@@ -22,13 +22,13 @@
         } @else {
           <nav class="nav">
             <a mat-button routerLink="/home" routerLinkActive="active" class="nav-link">
-              <mat-icon>home</mat-icon>
-              <span>Home</span>
+              <mat-icon>explore</mat-icon>
+              <span>Courses</span>
             </a>
 
-            <a mat-button routerLink="/my-favorites" routerLinkActive="active" class="nav-link">
-              <mat-icon>favorite</mat-icon>
-              <span>My Favorites</span>
+            <a mat-button routerLink="/my-learning" routerLinkActive="active" class="nav-link">
+              <mat-icon>bookmarks</mat-icon>
+              <span>My Learning</span>
             </a>
           </nav>
         }

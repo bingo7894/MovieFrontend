@@ -52,7 +52,7 @@ export class VideoPlayer implements OnInit, OnDestroy {
     document.addEventListener('keydown', this.boundKeydownHandler);
 
     this.dialogRef.beforeClosed().subscribe(() => {
-      this.cleanup;
+      this.cleanup();
     });
   }
 

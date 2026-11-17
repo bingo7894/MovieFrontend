@@ -1,0 +1,92 @@
+<div class="lms-dialog">
+  <div class="dialog-header">
+    <h2>{{ isEditMode ? 'Edit Episode (EP)' : 'Add New Episode (EP)' }}</h2>
+    <button mat-icon-button (click)="close()" type="button">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <form [formGroup]="episodeForm" class="dialog-body">
+    <div class="video-section">
+      @if (!videoPreviewUrl) {
+        <label class="upload-box">
+          <input type="file" accept="video/*" (change)="onVideoPicked($event)" hidden />
+          <mat-icon>cloud_upload</mat-icon>
+          <span>Upload Episode Video (optional for Quiz/Reading EPs)</span>
+          <small>MP4, WebM, MKV, MOV supported (max 2GB)</small>
+        </label>
+      } @else {
+        <div class="video-preview">
+          <video [src]="videoPreviewUrl" controls preload="metadata"></video>
+          <button mat-icon-button class="remove-btn" (click)="removeVideo()" type="button">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      }
+
+      @if (uploadProgress > 0 && uploadProgress < 100) {
+        <div class="progress-wrap">
+          <mat-progress-bar [value]="uploadProgress" mode="determinate"></mat-progress-bar>
+          <span>Uploading... {{ uploadProgress }}%</span>
+        </div>
+      }
+    </div>
+
+    <div class="row-ep">
+      <mat-form-field appearance="outline">
+        <mat-label>EP Number</mat-label>
+        <input matInput type="number" min="1" formControlName="episodeNumber" required />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Episode Title</mat-label>
+        <input matInput formControlName="title" placeholder="e.g. EP 1: Creating Your First Controller" required />
+        @if (episodeForm.get('title')?.hasError('required')) {
+          <mat-error>Episode title is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Duration (seconds)</mat-label>
+        <input matInput type="number" min="0" formControlName="duration" />
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Lesson Summary / Notes</mat-label>
+      <textarea matInput rows="3" formControlName="description" placeholder="Key takeaways or instructions for this EP..."></textarea>
+    </mat-form-field>
+
+    <div class="toggles-row">
+      <div class="toggle-card">
+        <div>
+          <strong>Published</strong>
+          <p>Students can view this EP</p>
+        </div>
+        <mat-slide-toggle formControlName="published" color="primary"></mat-slide-toggle>
+      </div>
+
+      <div class="toggle-card">
+        <div>
+          <strong>Free Preview</strong>
+          <p>Highlight as sample lesson</p>
+        </div>
+        <mat-slide-toggle formControlName="freePreview" color="primary"></mat-slide-toggle>
+      </div>
+    </div>
+  </form>
+
+  <div class="dialog-footer">
+    <button mat-button (click)="close()" type="button">Cancel</button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onSave()"
+      [disabled]="isSaving || episodeForm.invalid || (uploadProgress > 0 && uploadProgress < 100)"
+      type="button"
+    >
+      <mat-icon>{{ isSaving ? 'hourglass_empty' : 'save' }}</mat-icon>
+      {{ isSaving ? 'Saving...' : 'Save Episode' }}
+    </button>
+  </div>
+</div>

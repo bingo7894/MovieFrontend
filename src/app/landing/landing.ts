@@ -34,56 +34,47 @@ export class Landing {
 
   reasons = [
     {
-      title: 'Enjoy on your TV',
-      text: 'Watch on smart TVs, PlayStation, Xbox, Chromecast, Apple TV, Blu-ray players and more.',
-      icon: 'tv',
+      title: 'Structured Topics & EPs',
+      text: 'Follow step-by-step courses organized clearly into topics and bite-sized episodes.',
+      icon: 'menu_book',
     },
     {
-      title: 'Download your shows to watch offline',
-      text: 'Save your favourites easily and always have something to watch.',
+      title: 'Downloadable Materials',
+      text: 'Access slides, PDF guides, and source code attachments directly inside every lesson.',
       icon: 'file_download',
     },
     {
-      title: 'Watch everywhere',
-      text: 'Stream unlimited movies and TV shows on your phone, tablet, laptop and TV.',
-      icon: 'devices',
+      title: 'Interactive Exercises',
+      text: 'Test your knowledge with instant auto-graded quizzes and detailed explanations.',
+      icon: 'quiz',
     },
     {
-      title: 'Create profiles for kids',
-      text: 'Send kids on adventures in a space made just for them - free with your membership.',
-      icon: 'face',
+      title: 'Progress & Time Notes',
+      text: 'Track completion progress, resume right where you left off, and save timestamped notes.',
+      icon: 'fact_check',
     },
   ];
 
   faqs = [
     {
-      question: 'What is PulseScreen?',
+      question: 'What is PulseLearn LMS?',
       answer:
-        'PulseScreen is a streaming service that offers a wide variety of award-winning TV shows, movies, anime, documentaries and more',
+        'PulseLearn LMS is a structured online learning platform with topic-based video episodes, downloadable study materials, and interactive exercises.',
     },
     {
-      question: 'How much does PulseScreen cost?',
-      answer: 'Plans start at ₹149 a month. No extra costs, no contracts.',
+      question: 'How are courses organized?',
+      answer:
+        'Each course is divided into clear Topics, and each Topic contains numbered Episodes (EP) with videos, attachments, and quizzes.',
     },
     {
-      question: 'Where can I watch?',
+      question: 'Can I download study materials?',
       answer:
-        'Watch anywhere, anytime. Sign in with your account to watch on the web or on devices like smartphones, tablets, smart TVs and',
+        'Yes! Every episode can include PDFs, slides, documents, and code archives that you can preview or download anytime.',
     },
     {
-      question: 'How do I cancel?',
+      question: 'Does the platform track my learning progress?',
       answer:
-        'You can cancel your membership online in two clicks. There are no cancellation fees - start or stop your account anytime.',
-    },
-    {
-      question: 'What can I watch on PulseScreen?',
-      answer:
-        'A huge library of feature films, documentaries, anime, TV shows, PulseScreen originals and more.',
-    },
-    {
-      question: 'Is PulseScreen good for kids?',
-      answer:
-        'The Kids experience includes family-friendly entertainment with parental controls to restrict content by maturity rating.',
+        'Yes, your watch time, completed episodes, quiz scores, and personal timestamped notes are automatically saved.',
     },
   ];
 }

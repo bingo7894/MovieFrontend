@@ -6,9 +6,11 @@ import { Login } from './login/login';
 import { VerfyEmail } from './verfy-email/verfy-email';
 import { Home } from './user/home/home';
 import { authGuard } from './shared/guards/auth-guard';
+import { adminGuard } from './shared/guards/admin-guard';
 import { ForgotPassword } from './forgot-password/forgot-password';
 import { ResetPassword } from './reset-password/reset-password';
 import { MyFavorites } from './user/my-favorites/my-favorites';
+import { CoursePlayer } from './user/course-player/course-player';
 
 const routes: Routes = [
   { path: '', component: Landing },
@@ -18,11 +20,13 @@ const routes: Routes = [
   { path: 'forgot-password', component: ForgotPassword },
   { path: 'reset-password', component: ResetPassword },
   { path: 'home', component: Home, canActivate: [authGuard] },
-  { path: 'my-favorites', component: MyFavorites, canActivate: [authGuard] },
+  { path: 'my-learning', component: MyFavorites, canActivate: [authGuard] },
+  { path: 'my-favorites', redirectTo: 'my-learning', pathMatch: 'full' },
+  { path: 'courses/:courseId/learn', component: CoursePlayer, canActivate: [authGuard] },
   {
     path: 'admin',
     loadChildren: () => import('../app/admin/admin-module').then((m) => m.AdminModule),
-    canActivate: [authGuard],
+    canActivate: [authGuard, adminGuard],
   },
   { path: '**', redirectTo: '', pathMatch: 'full' },
 ];

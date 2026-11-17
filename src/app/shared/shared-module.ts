@@ -22,6 +22,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmDialog } from './components/confirm-dialog/confirm-dialog';
@@ -51,6 +54,9 @@ const MATERIAL_MODULES = [
   MatSliderModule,
   MatToolbarModule,
   MatExpansionModule,
+  MatTabsModule,
+  MatRadioModule,
+  MatCheckboxModule,
 ];
 
 @NgModule({

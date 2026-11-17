@@ -1,11 +1,12 @@
 import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
-import { debounceTime, distinctUntilChanged, scan, Subject } from 'rxjs';
-import { VideoService } from '../../shared/services/video-service';
-import { WatchlistService } from '../../shared/services/watchlist-service';
+import { Router } from '@angular/router';
+import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { COURSE_CATEGORIES } from '../../shared/constants/app.constants';
+import { CourseService } from '../../shared/services/course-service';
+import { ProgressService } from '../../shared/services/progress-service';
 import { NotificationService } from '../../shared/services/notification-service';
 import { UtilityService } from '../../shared/services/utility-service';
 import { MediaService } from '../../shared/services/media-service';
-import { DialogService } from '../../shared/services/dialog-service';
 import { ErrorHandlerService } from '../../shared/services/error-handler-service';
 
 @Component({
@@ -15,14 +16,15 @@ import { ErrorHandlerService } from '../../shared/services/error-handler-service
   styleUrl: './home.css',
 })
 export class Home implements OnInit, OnDestroy {
-  allVideos: any = [];
-  filteredVideos: any = [];
+  courses: any[] = [];
   loading = true;
   loadingMore = false;
   error = false;
-  searchQuery: string = '';
+  searchQuery = '';
+  selectedCategory = '';
+  categories = COURSE_CATEGORIES;
 
-  featuredVideos: any[] = [];
+  featuredCourses: any[] = [];
   currentSlideIndex = 0;
   featuredLoading = true;
 
@@ -30,255 +32,166 @@ export class Home implements OnInit, OnDestroy {
   pageSize = 10;
   totalElements = 0;
   totalPages = 0;
-  hasMoreVideos = true;
+  hasMoreCourses = true;
 
-  private searchSubject = new Subject<String>();
+  private searchSubject = new Subject<string>();
   private sliderInterval: any;
-  private saveScrollPosition: number = 0;
 
   constructor(
-    private videoSerive: VideoService,
-    private watchlistService: WatchlistService,
+    private courseService: CourseService,
+    private progressService: ProgressService,
     private notification: NotificationService,
     public utilityService: UtilityService,
     public mediaService: MediaService,
-    private dialogService: DialogService,
-    private errorHandlerService: ErrorHandlerService,
+    private errorHandler: ErrorHandlerService,
+    private router: Router,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
-    this.loadFeaturedVideos();
-    this.loadVideos();
-    this.initializeSearchDebounce();
+    this.loadFeaturedCourses();
+    this.loadCourses();
+    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(() => {
+      this.currentPage = 0;
+      this.loadCourses();
+    });
   }
 
   ngOnDestroy(): void {
     this.searchSubject.complete();
-    this.stopSlider();
+    if (this.sliderInterval) clearInterval(this.sliderInterval);
   }
 
-  initializeSearchDebounce(): void {
-    this.searchSubject.pipe(debounceTime(500), distinctUntilChanged()).subscribe(() => {
-      this.preformSearch();
-    });
-  }
-
-  loadFeaturedVideos() {
+  loadFeaturedCourses(): void {
     this.featuredLoading = true;
-    this.videoSerive.getFratureVideo().subscribe({
-      next: (videos: any) => {
-        this.featuredVideos = videos;
+    this.courseService.getFeaturedCourses().subscribe({
+      next: (courses: any) => {
+        this.featuredCourses = courses || [];
         this.featuredLoading = false;
-        if (this.featuredVideos.length > 1) {
-          this.startSlider();
+        if (this.featuredCourses.length > 1) {
+          this.sliderInterval = setInterval(() => this.nextSlide(), 5000);
         }
-        this.cdr.detectChanges(); // อัปเดต UI เมื่อโหลด Featured Videos เสร็จ
+        this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         this.featuredLoading = false;
-        this.errorHandlerService.handle(err, 'Error loading featured videos');
-        this.cdr.detectChanges(); // อัปเดต UI เมื่อเกิด Error
+        this.cdr.detectChanges();
       },
     });
   }
 
-  private startSlider() {
-    this.sliderInterval = setInterval(() => {
-      this.nextSlide();
-    }, 5000);
-  }
-
-  private stopSlider() {
-    if (this.sliderInterval) {
-      clearInterval(this.sliderInterval);
+  nextSlide(): void {
+    if (this.featuredCourses.length > 0) {
+      this.currentSlideIndex = (this.currentSlideIndex + 1) % this.featuredCourses.length;
+      this.cdr.detectChanges();
     }
   }
 
-  nextSlide() {
-    if (this.featuredVideos.length > 0) {
-      this.currentSlideIndex = (this.currentSlideIndex + 1) % this.featuredVideos.length;
-      this.cdr.detectChanges(); // อัปเดต UI เมื่อสไลด์เปลี่ยน
-    }
-  }
-
-  prevSlide() {
-    if (this.featuredVideos.length > 0) {
+  prevSlide(): void {
+    if (this.featuredCourses.length > 0) {
       this.currentSlideIndex =
-        (this.currentSlideIndex - 1 + this.featuredVideos.length) % this.featuredVideos.length;
-      this.cdr.detectChanges(); // อัปเดต UI เมื่อสไลด์เปลี่ยน
+        (this.currentSlideIndex - 1 + this.featuredCourses.length) % this.featuredCourses.length;
+      this.cdr.detectChanges();
     }
-  }
-
-  goToSlide(index: number) {
-    this.currentSlideIndex = index;
-    this.stopSlider();
-    if (this.featuredVideos.length > 1) {
-      this.startSlider();
-    }
-    this.cdr.detectChanges(); // อัปเดต UI เมื่อผู้ใช้กดจุด Indicator เปลี่ยนสไลด์
-  }
-
-  getCurrentFeaturedVideo() {
-    return this.featuredVideos[this.currentSlideIndex] || null;
   }
 
   @HostListener('window:scroll')
   onScroll(): void {
-    const scrollPosition = window.pageYOffset + window.innerHeight;
-    const pageHeight = document.documentElement.scrollHeight;
-
-    if (
-      scrollPosition >= pageHeight - 200 &&
-      !this.loadingMore &&
-      !this.loading &&
-      this.hasMoreVideos
-    ) {
-      this.loadMoreVideos();
+    const pos = window.pageYOffset + window.innerHeight;
+    const height = document.documentElement.scrollHeight;
+    if (pos >= height - 200 && !this.loadingMore && !this.loading && this.hasMoreCourses) {
+      this.loadMoreCourses();
     }
   }
 
-  loadVideos(page: number = 0) {
+  loadCourses(): void {
     this.error = false;
     this.currentPage = 0;
-    this.allVideos = [];
-    this.filteredVideos = [];
-    const search = this.searchQuery.trim() || undefined;
-    const isSearching = !!search;
+    this.courses = [];
     this.loading = true;
+    const search = this.searchQuery.trim() || undefined;
+    const category = this.selectedCategory || undefined;
 
-    this.videoSerive.getPublishedVideoPaginated(page, this.pageSize, search).subscribe({
-      next: (response: any) => {
-        this.allVideos = response.content;
-        this.filteredVideos = response.content;
-        this.currentPage = response.number;
-        this.totalElements = response.totalElements;
-        this.totalPages = response.totalPages;
-        this.hasMoreVideos = this.currentPage < this.totalPages - 1;
+    this.courseService.getPublishedCourses(0, this.pageSize, search, category).subscribe({
+      next: (res: any) => {
+        this.courses = res.content || [];
+        this.currentPage = res.number || 0;
+        this.totalElements = res.totalElements || 0;
+        this.totalPages = res.totalPages || 0;
+        this.hasMoreCourses = this.currentPage < this.totalPages - 1;
         this.loading = false;
-
-        this.cdr.detectChanges(); // สั่งอัปเดต UI หน้าจอทันทีเมื่อได้ข้อมูลวิดีโอใหม่
-
-        if (isSearching && this.saveScrollPosition > 0) {
-          setTimeout(() => {
-            window.scrollTo({
-              top: this.saveScrollPosition,
-              behavior: 'auto',
-            });
-            this.saveScrollPosition = 0;
-          }, 0);
-        }
+        this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Error loading videos:', err);
         this.error = true;
         this.loading = false;
-        this.saveScrollPosition = 0;
-        this.cdr.detectChanges(); // อัปเดต UI เพื่อโชว์ข้อความ Error
+        this.errorHandler.handle(err, 'Failed to load courses');
+        this.cdr.detectChanges();
       },
     });
   }
 
-  loadMoreVideos() {
-    if (this.loadingMore || !this.hasMoreVideos) return;
+  loadMoreCourses(): void {
+    if (this.loadingMore || !this.hasMoreCourses) return;
     this.loadingMore = true;
     const nextPage = this.currentPage + 1;
     const search = this.searchQuery.trim() || undefined;
+    const category = this.selectedCategory || undefined;
 
-    this.videoSerive.getPublishedVideoPaginated(nextPage, this.pageSize, search).subscribe({
-      next: (response: any) => {
-        this.allVideos = [...this.allVideos, ...response.content];
-        this.filteredVideos = [...this.filteredVideos, ...response.content];
-        this.currentPage = response.number;
-        this.hasMoreVideos = this.currentPage < this.totalPages - 1;
+    this.courseService.getPublishedCourses(nextPage, this.pageSize, search, category).subscribe({
+      next: (res: any) => {
+        this.courses = [...this.courses, ...(res.content || [])];
+        this.currentPage = res.number;
+        this.hasMoreCourses = this.currentPage < this.totalPages - 1;
         this.loadingMore = false;
-        this.cdr.detectChanges(); // สั่งอัปเดต UI ให้วิดีโอใหม่ปรากฏต่อท้าย
+        this.cdr.detectChanges();
       },
-      error: (err) => {
-        this.notification.error('Failed to load more video');
+      error: () => {
         this.loadingMore = false;
-        this.cdr.detectChanges(); // อัปเดตสถานะ loadingMore
+        this.cdr.detectChanges();
       },
     });
   }
 
-  onSearch() {
+  onSearch(): void {
     this.searchSubject.next(this.searchQuery);
   }
 
-  private preformSearch() {
-    this.saveScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-    this.currentPage = 0;
-    this.loadVideos();
-  }
-
-  clearSearch() {
+  clearSearch(): void {
     this.searchQuery = '';
-    this.currentPage = 0;
-    this.saveScrollPosition = 0;
-    this.cdr.detectChanges(); // รีเซ็ตค่า Input ให้โล่งทันที
-    this.loadVideos();
+    this.loadCourses();
   }
 
-  isInWatchlist(video: any): boolean {
-    return video.isInWatchlist === true;
+  selectCategory(category: string): void {
+    this.selectedCategory = this.selectedCategory === category ? '' : category;
+    this.loadCourses();
   }
 
-  toggleWatchlist(video: any, event?: Event) {
-    if (event) {
-      event.stopPropagation();
-    }
-
-    const videoId = video.id;
-    const isInList = this.isInWatchlist(video);
-
-    if (isInList) {
-      video.isInWatchlist = false;
-      this.cdr.detectChanges(); // อัปเดตไอคอนหัวใจให้เปลี่ยนทันทีโดยไม่ต้องรอ API เพื่อประสบการณ์ที่ลื่นไหล (Optimistic Update)
-
-      this.watchlistService.removeFromWatchlist(videoId).subscribe({
-        next: () => {
-          this.notification.success('Removed from My Favorites');
-        },
-        error: (err) => {
-          video.isInWatchlist = true; // คืนค่ากลับถ้า API พัง
-          this.cdr.detectChanges(); // อัปเดตไอคอนหัวใจกลับมาแสดงตามเดิม
-          this.errorHandlerService.handle(
-            err,
-            'Failed to remove from My Favorites. Please try again.',
-          );
-        },
-      });
-    } else {
-      video.isInWatchlist = true;
-      this.cdr.detectChanges(); // อัปเดตไอคอนหัวใจให้เปลี่ยนทันที
-
-      this.watchlistService.addToWatchlist(videoId).subscribe({
-        next: () => {
-          this.notification.success('Added to My Favorites');
-        },
-        error: (err) => {
-          video.isInWatchlist = false; // คืนค่ากลับถ้า API พัง
-          this.cdr.detectChanges(); // อัปเดตไอคอนหัวใจกลับมาแสดงตามเดิม
-          this.errorHandlerService.handle(err, 'Failed to add to My Favorites. Please try again.');
-        },
-      });
-    }
+  openCourse(course: any): void {
+    this.router.navigate(['/courses', course.id, 'learn']);
   }
 
-  getPosterUrl(video: any) {
-    return (
-      this.mediaService.getMediaUrl(video, 'image', {
-        useCache: true,
-      }) || ''
-    );
+  toggleEnrollment(course: any, event: Event): void {
+    event.stopPropagation();
+    const nextEnrolled = !course.enrolled;
+    course.enrolled = nextEnrolled;
+
+    const op$ = nextEnrolled
+      ? this.progressService.enrollCourse(course.id)
+      : this.progressService.unenrollCourse(course.id);
+
+    op$.subscribe({
+      next: () => {
+        this.notification.success(nextEnrolled ? 'Saved to My Learning' : 'Removed from My Learning');
+      },
+      error: (err) => {
+        course.enrolled = !nextEnrolled;
+        this.errorHandler.handle(err, 'Failed to update enrollment');
+      },
+    });
   }
 
-  playVideo(video: any) {
-    this.dialogService.openVideoPlayer(video);
-  }
-
-  formatDuration(seconds: number | undefined): string {
-    return this.utilityService.formatDuration(seconds);
+  getThumbnailUrl(course: any): string {
+    return this.mediaService.getMediaUrl(course, 'image', { useCache: true }) || '';
   }
 }
