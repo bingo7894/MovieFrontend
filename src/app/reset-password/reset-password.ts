@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { AuthService } from '../shared/services/auth-service';
 import { NotificationService } from '../shared/services/notification-service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -45,28 +46,29 @@ export class ResetPassword implements OnInit {
   }
 
   submit() {
+    if (this.loading || this.resetPasswordForm.invalid) return;
     this.loading = true;
     const newPassword = this.resetPasswordForm.value.password;
 
-    this.authService.resetPassword(this.token, newPassword).subscribe({
-      next: (response: any) => {
-        this.loading = false;
-        this.notification.success(response.message || 'Password reset successfully!');
-        this.router.navigate(['/login']);
-      },
-      error: (err) => {
-        this.loading = false;
-        const errorMsg = err.error?.error || 'Failed reset password.Please try again.';
-
-        if (
-          errorMsg.toLowerCase().includes('expired') ||
-          errorMsg.toLowerCase().includes('invalid')
-        ) {
-          this.tokenValid = false;
-        } else {
-          this.notification.error(errorMsg);
-        }
-      },
-    });
+    this.authService
+      .resetPassword(this.token, newPassword)
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: (response: any) => {
+          this.notification.success(response.message || 'Password reset successfully!');
+          this.router.navigate(['/login']);
+        },
+        error: (err) => {
+          const errorMsg = err.error?.error || 'Failed reset password. Please try again.';
+          if (
+            errorMsg.toLowerCase().includes('expired') ||
+            errorMsg.toLowerCase().includes('invalid')
+          ) {
+            this.tokenValid = false;
+          } else {
+            this.notification.error(errorMsg);
+          }
+        },
+      });
   }
 }

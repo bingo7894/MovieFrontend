@@ -3,6 +3,7 @@ import {
   NgModule,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
+  provideZoneChangeDetection,
 } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
@@ -37,6 +38,7 @@ import { CoursePlayer } from './user/course-player/course-player';
   ],
   imports: [BrowserModule, AppRoutingModule, SharedModule],
   providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
     provideAppInitializer(() => {
       const auth = inject(AuthService);
       return auth.initializeAuth();

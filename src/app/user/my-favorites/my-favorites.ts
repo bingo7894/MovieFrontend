@@ -1,6 +1,6 @@
-import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, finalize, Subject, Subscription } from 'rxjs';
 import { ProgressService } from '../../shared/services/progress-service';
 import { NotificationService } from '../../shared/services/notification-service';
 import { UtilityService } from '../../shared/services/utility-service';
@@ -16,6 +16,8 @@ import { ErrorHandlerService } from '../../shared/services/error-handler-service
 export class MyFavorites implements OnInit, OnDestroy {
   courses: any[] = [];
   loading = true;
+  refreshing = false;
+  hasLoadedOnce = false;
   loadingMore = false;
   error = false;
   searchQuery = '';
@@ -27,6 +29,8 @@ export class MyFavorites implements OnInit, OnDestroy {
   hasMore = true;
 
   private searchSubject = new Subject<string>();
+  private coursesSub: Subscription | null = null;
+  private searchSub: Subscription | null = null;
 
   constructor(
     private progressService: ProgressService,
@@ -35,18 +39,19 @@ export class MyFavorites implements OnInit, OnDestroy {
     public mediaService: MediaService,
     private errorHandler: ErrorHandlerService,
     private router: Router,
-    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.loadCourses();
-    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(() => {
+    this.searchSub = this.searchSubject.pipe(debounceTime(350), distinctUntilChanged()).subscribe(() => {
       this.currentPage = 0;
       this.loadCourses();
     });
   }
 
   ngOnDestroy(): void {
+    this.coursesSub?.unsubscribe();
+    this.searchSub?.unsubscribe();
     this.searchSubject.complete();
   }
 
@@ -54,7 +59,7 @@ export class MyFavorites implements OnInit, OnDestroy {
   onScroll(): void {
     const pos = window.pageYOffset + window.innerHeight;
     const height = document.documentElement.scrollHeight;
-    if (pos >= height - 200 && !this.loadingMore && !this.loading && this.hasMore) {
+    if (pos >= height - 200 && !this.loadingMore && !this.loading && !this.refreshing && this.hasMore) {
       this.loadMore();
     }
   }
@@ -62,27 +67,36 @@ export class MyFavorites implements OnInit, OnDestroy {
   loadCourses(): void {
     this.error = false;
     this.currentPage = 0;
-    this.courses = [];
-    this.loading = true;
+    if (!this.hasLoadedOnce) {
+      this.loading = true;
+    } else {
+      this.refreshing = true;
+    }
     const search = this.searchQuery.trim() || undefined;
 
-    this.progressService.getEnrolledCourses(0, this.pageSize, search).subscribe({
-      next: (res: any) => {
-        this.courses = res.content || [];
-        this.currentPage = res.number || 0;
-        this.totalElements = res.totalElements || 0;
-        this.totalPages = res.totalPages || 0;
-        this.hasMore = this.currentPage < this.totalPages - 1;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.error = true;
-        this.loading = false;
-        this.errorHandler.handle(err, 'Failed to load enrolled courses');
-        this.cdr.detectChanges();
-      },
-    });
+    this.coursesSub?.unsubscribe();
+    this.coursesSub = this.progressService
+      .getEnrolledCourses(0, this.pageSize, search)
+      .pipe(
+        finalize(() => {
+          this.hasLoadedOnce = true;
+          this.loading = false;
+          this.refreshing = false;
+        }),
+      )
+      .subscribe({
+        next: (res: any) => {
+          this.courses = res.content || [];
+          this.currentPage = res.number || 0;
+          this.totalElements = res.totalElements || 0;
+          this.totalPages = res.totalPages || 0;
+          this.hasMore = this.currentPage < this.totalPages - 1;
+        },
+        error: (err) => {
+          if (this.courses.length === 0) this.error = true;
+          this.errorHandler.handle(err, 'Failed to load enrolled courses');
+        },
+      });
   }
 
   loadMore(): void {
@@ -91,19 +105,16 @@ export class MyFavorites implements OnInit, OnDestroy {
     const nextPage = this.currentPage + 1;
     const search = this.searchQuery.trim() || undefined;
 
-    this.progressService.getEnrolledCourses(nextPage, this.pageSize, search).subscribe({
-      next: (res: any) => {
-        this.courses = [...this.courses, ...(res.content || [])];
-        this.currentPage = res.number;
-        this.hasMore = this.currentPage < this.totalPages - 1;
-        this.loadingMore = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.loadingMore = false;
-        this.cdr.detectChanges();
-      },
-    });
+    this.progressService
+      .getEnrolledCourses(nextPage, this.pageSize, search)
+      .pipe(finalize(() => (this.loadingMore = false)))
+      .subscribe({
+        next: (res: any) => {
+          this.courses = [...this.courses, ...(res.content || [])];
+          this.currentPage = res.number;
+          this.hasMore = this.currentPage < this.totalPages - 1;
+        },
+      });
   }
 
   onSearch(): void {
@@ -125,7 +136,6 @@ export class MyFavorites implements OnInit, OnDestroy {
       next: () => {
         this.courses = this.courses.filter((c) => c.id !== course.id);
         this.notification.success('Removed from My Learning');
-        this.cdr.detectChanges();
       },
       error: (err) => this.errorHandler.handle(err, 'Failed to remove course'),
     });

@@ -4,25 +4,23 @@
   @if (!featuredLoading && featuredCourses.length > 0) {
     <section class="banner-slider">
       @for (course of featuredCourses; track course.id; let i = $index) {
-        @if (i === currentSlideIndex) {
-          <div class="slide">
-            @if (getThumbnailUrl(course)) {
-              <img class="banner-bg" [src]="getThumbnailUrl(course)" [alt]="course.title" />
-            }
-            <div class="banner-overlay"></div>
-            <div class="banner-content">
-              <span class="banner-tag">{{ course.category || 'Featured Course' }} · {{ course.level }}</span>
-              <h2 class="banner-title">{{ course.title }}</h2>
-              <p class="banner-description">{{ course.description || 'Start learning today!' }}</p>
-              <div class="banner-actions">
-                <button mat-raised-button color="primary" (click)="openCourse(course)">
-                  <mat-icon>play_arrow</mat-icon>
-                  {{ course.completedEpisodes > 0 ? 'Continue Learning' : 'Start Learning' }}
-                </button>
-              </div>
+        <div class="slide" [class.active]="i === currentSlideIndex">
+          @if (getThumbnailUrl(course)) {
+            <img class="banner-bg" [src]="getThumbnailUrl(course)" [alt]="course.title" />
+          }
+          <div class="banner-overlay"></div>
+          <div class="banner-content">
+            <span class="banner-tag">{{ course.category || 'Featured Course' }} · {{ course.level }}</span>
+            <h2 class="banner-title">{{ course.title }}</h2>
+            <p class="banner-description">{{ course.description || 'Start learning today!' }}</p>
+            <div class="banner-actions">
+              <button mat-raised-button color="primary" (click)="openCourse(course)">
+                <mat-icon>play_arrow</mat-icon>
+                {{ course.completedEpisodes > 0 ? 'Continue Learning' : 'Start Learning' }}
+              </button>
             </div>
           </div>
-        }
+        </div>
       }
       @if (featuredCourses.length > 1) {
         <button class="slider-nav prev" (click)="prevSlide()"><mat-icon>chevron_left</mat-icon></button>
@@ -82,7 +80,8 @@
     }
 
     @if (!loading && !error) {
-      @if (courses.length > 0) {
+      <div [class.is-refreshing]="refreshing">
+        @if (courses.length > 0) {
         <h3 class="section-title">
           {{ selectedCategory || (searchQuery ? 'Search Results' : 'Available Courses') }} ({{ totalElements }})
         </h3>
@@ -143,6 +142,7 @@
           <p>{{ searchQuery || selectedCategory ? 'Try clearing filters' : 'Courses will appear here once published by an instructor.' }}</p>
         </div>
       }
+      </div>
     }
   </div>
 </div>

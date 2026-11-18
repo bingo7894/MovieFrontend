@@ -1,5 +1,6 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize } from 'rxjs';
 import { CourseService } from '../../shared/services/course-service';
 import { CurriculumService } from '../../shared/services/curriculum-service';
 import { QuizService } from '../../shared/services/quiz-service';
@@ -19,6 +20,7 @@ export class CourseCurriculum implements OnInit {
   courseId!: number;
   course: any = null;
   loading = true;
+  refreshing = false;
   uploadingEpisodeId: number | null = null;
   uploadProgress = 0;
 
@@ -33,7 +35,6 @@ export class CourseCurriculum implements OnInit {
     private notification: NotificationService,
     public utilityService: UtilityService,
     private errorHandler: ErrorHandlerService,
-    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -42,19 +43,28 @@ export class CourseCurriculum implements OnInit {
   }
 
   loadCourse(): void {
-    this.loading = true;
-    this.courseService.getAdminCourseDetail(this.courseId).subscribe({
-      next: (course) => {
-        this.course = course;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorHandler.handle(err, 'Failed to load course curriculum');
-        this.cdr.detectChanges();
-      },
-    });
+    if (!this.course) {
+      this.loading = true;
+    } else {
+      this.refreshing = true;
+    }
+
+    this.courseService
+      .getAdminCourseDetail(this.courseId)
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.refreshing = false;
+        }),
+      )
+      .subscribe({
+        next: (course) => {
+          this.course = course;
+        },
+        error: (err) => {
+          this.errorHandler.handle(err, 'Failed to load course curriculum');
+        },
+      });
   }
 
   backToCourses(): void {
@@ -106,10 +116,14 @@ export class CourseCurriculum implements OnInit {
     const target = index + delta;
     if (target < 0 || target >= topics.length) return;
     [topics[index], topics[target]] = [topics[target], topics[index]];
+    this.course.topics = topics;
     const orderedIds = topics.map((t: any) => t.id);
     this.curriculumService.reorderTopics(this.courseId, orderedIds).subscribe({
       next: () => this.loadCourse(),
-      error: (err) => this.errorHandler.handle(err, 'Failed to reorder topics'),
+      error: (err) => {
+        this.loadCourse();
+        this.errorHandler.handle(err, 'Failed to reorder topics');
+      },
     });
   }
 
@@ -158,10 +172,14 @@ export class CourseCurriculum implements OnInit {
     const target = index + delta;
     if (target < 0 || target >= episodes.length) return;
     [episodes[index], episodes[target]] = [episodes[target], episodes[index]];
+    topic.episodes = episodes;
     const orderedIds = episodes.map((e: any) => e.id);
     this.curriculumService.reorderEpisodes(topic.id, orderedIds).subscribe({
       next: () => this.loadCourse(),
-      error: (err) => this.errorHandler.handle(err, 'Failed to reorder episodes'),
+      error: (err) => {
+        this.loadCourse();
+        this.errorHandler.handle(err, 'Failed to reorder episodes');
+      },
     });
   }
 
@@ -185,25 +203,20 @@ export class CourseCurriculum implements OnInit {
               fileSize: size ?? file.size,
               contentType: contentType || file.type,
             })
+            .pipe(finalize(() => (this.uploadingEpisodeId = null)))
             .subscribe({
               next: () => {
-                this.uploadingEpisodeId = null;
                 this.notification.success('Study material attached');
                 this.loadCourse();
               },
-              error: (err) => {
-                this.uploadingEpisodeId = null;
-                this.errorHandler.handle(err, 'Failed to save attachment');
-              },
+              error: (err) => this.errorHandler.handle(err, 'Failed to save attachment'),
             });
         }
-        this.cdr.detectChanges();
       },
       error: (err) => {
         this.uploadingEpisodeId = null;
         this.uploadProgress = 0;
         this.errorHandler.handle(err, 'Failed to upload file');
-        this.cdr.detectChanges();
       },
     });
     input.value = '';

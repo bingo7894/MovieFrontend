@@ -1,16 +1,21 @@
 <div class="curriculum-container">
   <div class="top-bar">
-    <button mat-button (click)="backToCourses()">
+    <button mat-stroked-button (click)="backToCourses()" class="back-btn">
       <mat-icon>arrow_back</mat-icon> Back to Courses
     </button>
 
     @if (course) {
       <div class="course-title-box">
         <h1>{{ course.title }}</h1>
-        <span class="badge">{{ course.category }} · {{ course.level }}</span>
-        <span class="badge" [class.pub]="course.published">
-          {{ course.published ? 'Published' : 'Draft' }}
-        </span>
+        <div class="badges-row">
+          @if (course.category) {
+            <span class="badge">{{ course.category }}</span>
+          }
+          <span class="badge">{{ course.level }}</span>
+          <span class="badge" [class.pub]="course.published">
+            {{ course.published ? 'Published' : 'Draft' }}
+          </span>
+        </div>
       </div>
 
       <button mat-raised-button color="primary" (click)="addTopic()">
@@ -23,7 +28,7 @@
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>
   }
 
-  @if (!loading && course) {
+  @if (course) {
     @if (course.topics.length === 0) {
       <div class="empty-state">
         <mat-icon>folder_open</mat-icon>
@@ -61,7 +66,7 @@
                   <mat-icon>arrow_downward</mat-icon>
                 </button>
                 <button mat-stroked-button color="primary" (click)="addEpisode(topic)">
-                  <mat-icon>add_circle</mat-icon> Add EP
+                  <mat-icon>add</mat-icon> Add EP
                 </button>
                 <button mat-icon-button (click)="editTopic(topic)" matTooltip="Edit Topic">
                   <mat-icon>edit</mat-icon>

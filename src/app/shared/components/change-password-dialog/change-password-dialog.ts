@@ -1,6 +1,7 @@
-import { Component, ErrorHandler, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth-service';
 import { NotificationService } from '../../services/notification-service';
 import { ErrorHandlerService } from '../../services/error-handler-service';
@@ -37,23 +38,25 @@ export class ChangePasswordDialog {
   }
 
   submit() {
+    if (this.loading || this.changePasswordForm.invalid) return;
     this.loading = true;
     const formData = this.changePasswordForm.value;
     const data = {
       currentPassword: formData.currentPassword,
       newPassword: formData.newPassword,
     };
-    this.authService.changePassword(data).subscribe({
-      next: (response: any) => {
-        this.loading = false;
-        this.notification.success(response.message || 'Password changed successfully!');
-        this.dialogRef.close(true);
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorHandlerService.handle(err, 'Failed to change password. Please try again.');
-      },
-    });
+    this.authService
+      .changePassword(data)
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: (response: any) => {
+          this.notification.success(response.message || 'Password changed successfully!');
+          this.dialogRef.close(true);
+        },
+        error: (err) => {
+          this.errorHandlerService.handle(err, 'Failed to change password. Please try again.');
+        },
+      });
   }
 
   cancel() {

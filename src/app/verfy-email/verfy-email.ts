@@ -1,5 +1,6 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; // 1. เพิ่ม Import
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { finalize } from 'rxjs';
 import { AuthService } from '../shared/services/auth-service';
 
 @Component({
@@ -16,7 +17,6 @@ export class VerfyEmail implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -25,28 +25,22 @@ export class VerfyEmail implements OnInit {
     if (!token) {
       this.loading = false;
       this.success = false;
-      this.message = 'Invalid verfication link, Notoken provided';
-      this.cdr.detectChanges();
+      this.message = 'Invalid verification link, no token provided';
       return;
     }
 
-    this.authService.verifyEmail(token).subscribe({
-      next: (response: any) => {
-        console.log('Success!', response);
-        this.loading = false;
-        this.success = true;
-        this.message = response.message || 'Email verified sucessfully!';
-
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Error!', err);
-        this.loading = false;
-        this.success = false;
-        this.message = 'Verification failed. the link may have expired or is invalid';
-
-        this.cdr.detectChanges();
-      },
-    });
+    this.authService
+      .verifyEmail(token)
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: (response: any) => {
+          this.success = true;
+          this.message = response.message || 'Email verified successfully!';
+        },
+        error: () => {
+          this.success = false;
+          this.message = 'Verification failed. The link may have expired or is invalid';
+        },
+      });
   }
 }

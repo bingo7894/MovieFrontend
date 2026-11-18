@@ -1,5 +1,6 @@
-import { ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { debounceTime, distinctUntilChanged, finalize, Subject, Subscription } from 'rxjs';
 import { CourseService } from '../../shared/services/course-service';
 import { DialogService } from '../../shared/services/dialog-service';
 import { NotificationService } from '../../shared/services/notification-service';
@@ -13,9 +14,11 @@ import { ErrorHandlerService } from '../../shared/services/error-handler-service
   templateUrl: './course-list.html',
   styleUrl: './course-list.css',
 })
-export class CourseList implements OnInit {
+export class CourseList implements OnInit, OnDestroy {
   courses: any[] = [];
-  loading = false;
+  loading = true;
+  refreshing = false;
+  hasLoadedOnce = false;
   loadingMore = false;
   searchQuery = '';
 
@@ -34,6 +37,10 @@ export class CourseList implements OnInit {
     totalQuizzes: 0,
   };
 
+  private searchSubject = new Subject<string>();
+  private coursesSub: Subscription | null = null;
+  private searchSub: Subscription | null = null;
+
   constructor(
     private courseService: CourseService,
     private dialogService: DialogService,
@@ -42,45 +49,62 @@ export class CourseList implements OnInit {
     public mediaService: MediaService,
     private errorHandler: ErrorHandlerService,
     private router: Router,
-    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.load();
     this.loadStats();
+    this.searchSub = this.searchSubject.pipe(debounceTime(350), distinctUntilChanged()).subscribe(() => {
+      this.load();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.coursesSub?.unsubscribe();
+    this.searchSub?.unsubscribe();
+    this.searchSubject.complete();
   }
 
   @HostListener('window:scroll')
   onScroll(): void {
     const pos = window.pageYOffset + window.innerHeight;
     const height = document.documentElement.scrollHeight;
-    if (pos >= height - 200 && !this.loadingMore && !this.loading && this.hasMore) {
+    if (pos >= height - 200 && !this.loadingMore && !this.loading && !this.refreshing && this.hasMore) {
       this.loadMore();
     }
   }
 
   load(): void {
-    this.loading = true;
     this.currentPage = 0;
-    this.courses = [];
+    if (!this.hasLoadedOnce) {
+      this.loading = true;
+    } else {
+      this.refreshing = true;
+    }
     const search = this.searchQuery.trim() || undefined;
 
-    this.courseService.getAllAdminCourses(0, this.pageSize, search).subscribe({
-      next: (res: any) => {
-        this.courses = res.content || [];
-        this.totalElements = res.totalElements || 0;
-        this.totalPages = res.totalPages || 0;
-        this.currentPage = res.number || 0;
-        this.hasMore = this.currentPage < this.totalPages - 1;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorHandler.handle(err, 'Failed to load courses');
-        this.cdr.detectChanges();
-      },
-    });
+    this.coursesSub?.unsubscribe();
+    this.coursesSub = this.courseService
+      .getAllAdminCourses(0, this.pageSize, search)
+      .pipe(
+        finalize(() => {
+          this.hasLoadedOnce = true;
+          this.loading = false;
+          this.refreshing = false;
+        }),
+      )
+      .subscribe({
+        next: (res: any) => {
+          this.courses = res.content || [];
+          this.totalElements = res.totalElements || 0;
+          this.totalPages = res.totalPages || 0;
+          this.currentPage = res.number || 0;
+          this.hasMore = this.currentPage < this.totalPages - 1;
+        },
+        error: (err) => {
+          this.errorHandler.handle(err, 'Failed to load courses');
+        },
+      });
   }
 
   loadMore(): void {
@@ -89,34 +113,32 @@ export class CourseList implements OnInit {
     const nextPage = this.currentPage + 1;
     const search = this.searchQuery.trim() || undefined;
 
-    this.courseService.getAllAdminCourses(nextPage, this.pageSize, search).subscribe({
-      next: (res: any) => {
-        this.courses = [...this.courses, ...(res.content || [])];
-        this.currentPage = res.number;
-        this.hasMore = this.currentPage < this.totalPages - 1;
-        this.loadingMore = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.loadingMore = false;
-        this.errorHandler.handle(err, 'Failed to load more courses');
-        this.cdr.detectChanges();
-      },
-    });
+    this.courseService
+      .getAllAdminCourses(nextPage, this.pageSize, search)
+      .pipe(finalize(() => (this.loadingMore = false)))
+      .subscribe({
+        next: (res: any) => {
+          this.courses = [...this.courses, ...(res.content || [])];
+          this.currentPage = res.number;
+          this.hasMore = this.currentPage < this.totalPages - 1;
+        },
+        error: (err) => {
+          this.errorHandler.handle(err, 'Failed to load more courses');
+        },
+      });
   }
 
   loadStats(): void {
     this.courseService.getAdminStats().subscribe({
       next: (stats) => {
         this.stats = stats;
-        this.cdr.detectChanges();
       },
     });
   }
 
   onSearchChange(event: Event): void {
     this.searchQuery = (event.target as HTMLInputElement).value;
-    this.load();
+    this.searchSubject.next(this.searchQuery);
   }
 
   clearSearch(): void {
@@ -125,22 +147,27 @@ export class CourseList implements OnInit {
   }
 
   createNew(): void {
-    this.dialogService.openCourseFormDialog('create').afterClosed().subscribe((created) => {
-      if (created) {
-        this.load();
-        this.loadStats();
-      }
-    });
+    this.dialogService
+      .openCourseFormDialog('create')
+      .afterClosed()
+      .subscribe((created) => {
+        if (created) {
+          this.load();
+          this.loadStats();
+        }
+      });
   }
 
   edit(course: any): void {
-    this.dialogService.openCourseFormDialog('edit', course).afterClosed().subscribe((updated) => {
-      if (updated) {
-        Object.assign(course, updated);
-        this.loadStats();
-        this.cdr.detectChanges();
-      }
-    });
+    this.dialogService
+      .openCourseFormDialog('edit', course)
+      .afterClosed()
+      .subscribe((updated) => {
+        if (updated) {
+          Object.assign(course, updated);
+          this.loadStats();
+        }
+      });
   }
 
   manageCurriculum(course: any): void {
@@ -148,19 +175,28 @@ export class CourseList implements OnInit {
   }
 
   togglePublish(event: any, course: any): void {
+    if (course._toggling) {
+      if (event.source) event.source.checked = course.published;
+      return;
+    }
     const nextState = event.checked;
+    course._toggling = true;
     course.published = nextState;
-    this.courseService.togglePublish(course.id, nextState).subscribe({
-      next: () => {
-        this.notification.success(`Course ${nextState ? 'published' : 'unpublished'}`);
-        this.loadStats();
-      },
-      error: (err) => {
-        course.published = !nextState;
-        if (event.source) event.source.checked = course.published;
-        this.errorHandler.handle(err, 'Failed to update publish status');
-      },
-    });
+
+    this.courseService
+      .togglePublish(course.id, nextState)
+      .pipe(finalize(() => (course._toggling = false)))
+      .subscribe({
+        next: () => {
+          this.notification.success(`Course ${nextState ? 'published' : 'unpublished'}`);
+          this.loadStats();
+        },
+        error: (err) => {
+          course.published = !nextState;
+          if (event.source) event.source.checked = course.published;
+          this.errorHandler.handle(err, 'Failed to update publish status');
+        },
+      });
   }
 
   remove(course: any): void {
@@ -177,7 +213,8 @@ export class CourseList implements OnInit {
         this.courseService.deleteCourse(course.id).subscribe({
           next: () => {
             this.notification.success('Course deleted successfully');
-            this.load();
+            this.courses = this.courses.filter((c) => c.id !== course.id);
+            this.totalElements = Math.max(0, this.totalElements - 1);
             this.loadStats();
           },
           error: (err) => this.errorHandler.handle(err, 'Failed to delete course'),

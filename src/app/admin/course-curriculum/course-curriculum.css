@@ -1,15 +1,22 @@
 .curriculum-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px 20px 60px;
+  padding: 12px 16px 36px;
 }
 .top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.back-btn {
+  flex-shrink: 0;
 }
 .course-title-box {
   display: flex;
@@ -20,13 +27,21 @@
 }
 .course-title-box h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
+  font-weight: 700;
+}
+.badges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .badge {
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
-  background: var(--surface);
+  font-weight: 500;
+  background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--muted);
 }
@@ -37,7 +52,7 @@
 .topics-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
 }
 .topic-card {
   background: var(--surface);
@@ -49,28 +64,28 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid var(--border);
 }
 .topic-info {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 .topic-info h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
 }
 .topic-info p {
-  margin: 4px 0 0;
-  font-size: 13px;
+  margin: 2px 0 0;
+  font-size: 12px;
   color: var(--muted);
 }
 .order-chip {
-  padding: 5px 12px;
+  padding: 4px 10px;
   border-radius: 8px;
   background: var(--accent);
   color: #fff;
@@ -80,29 +95,29 @@
 .topic-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 .episodes-list {
-  padding: 16px 20px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 .no-episodes {
   display: flex;
   align-items: center;
   justify-content: space-between;
   color: var(--muted);
-  padding: 8px 4px;
+  padding: 4px 4px;
 }
 .ep-card {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 .ep-main {
   display: flex;
@@ -213,11 +228,22 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 4px 10px;
+  padding: 6px 10px;
   border-radius: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   font-size: 12px;
+}
+.item-pill .mat-mdc-icon-button {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  --mat-icon-button-state-layer-size: 32px;
+}
+.item-pill .mat-mdc-icon-button mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
 }
 .pill-name {
   display: inline-flex;
@@ -234,13 +260,25 @@
 }
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 40px 20px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
   color: var(--muted);
 }
-.empty-state mat-icon {
-  font-size: 64px;
-  width: 64px;
-  height: 64px;
+.empty-state > mat-icon {
+  font-size: 52px;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 10px;
+  opacity: 0.75;
+}
+.empty-state h2 {
+  margin: 0 0 8px;
+  color: var(--text);
+}
+.empty-state p {
+  margin: 0 0 20px;
 }
 @media (max-width: 768px) {
   .ep-extras {

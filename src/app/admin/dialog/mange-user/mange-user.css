@@ -3,22 +3,22 @@
 }
 
 .dialog-header {
-  padding: 24px 32px;
+  padding: 14px 20px;
   border-bottom: 1px solid rgba(229, 9, 20, 0.2);
   background: rgba(10, 10, 10, 0.95);
 }
 
 .dialog-header h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
 }
 
 .dialog-content {
-  padding: 24px 32px;
-  max-height: 60vh;
+  padding: 16px 20px;
+  max-height: 62vh;
   overflow-y: auto;
 }
 
@@ -77,8 +77,8 @@
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 20px 32px;
+  gap: 10px;
+  padding: 12px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(20, 20, 20, 0.98);
 }

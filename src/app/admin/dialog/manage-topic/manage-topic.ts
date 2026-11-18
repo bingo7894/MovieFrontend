@@ -1,6 +1,7 @@
-import { ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { finalize } from 'rxjs';
 import { CurriculumService } from '../../../shared/services/curriculum-service';
 import { NotificationService } from '../../../shared/services/notification-service';
 import { ErrorHandlerService } from '../../../shared/services/error-handler-service';
@@ -21,7 +22,6 @@ export class ManageTopic implements OnInit {
     private curriculumService: CurriculumService,
     private notification: NotificationService,
     private errorHandler: ErrorHandlerService,
-    private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<ManageTopic>,
     @Inject(MAT_DIALOG_DATA) public data: any,
   ) {
@@ -44,7 +44,7 @@ export class ManageTopic implements OnInit {
   }
 
   onSave(): void {
-    if (this.topicForm.invalid) return;
+    if (this.isSaving || this.topicForm.invalid) return;
     this.isSaving = true;
     const payload = this.topicForm.value;
 
@@ -52,16 +52,13 @@ export class ManageTopic implements OnInit {
       ? this.curriculumService.updateTopic(this.data.topic.id, payload)
       : this.curriculumService.createTopic(this.data.courseId, payload);
 
-    op$.subscribe({
+    op$.pipe(finalize(() => (this.isSaving = false))).subscribe({
       next: (saved) => {
-        this.isSaving = false;
         this.notification.success(this.isEditMode ? 'Topic updated' : 'Topic created');
         this.dialogRef.close(saved);
       },
       error: (err) => {
-        this.isSaving = false;
         this.errorHandler.handle(err, 'Failed to save topic');
-        this.cdr.detectChanges();
       },
     });
   }

@@ -36,7 +36,8 @@
         <div class="user-menu">
           <button mat-button [matMenuTriggerFor]="userMenu" class="user-profile-btn">
             <mat-icon class="profile-icon">account_circle</mat-icon>
-            <mat-icon class="dropdown-icon">arrow_drop_down</mat-icon>
+            <span class="profile-name">{{ currentUser?.fullName || currentUser?.email }}</span>
+            <mat-icon class="dropdown-icon" iconPositionEnd>arrow_drop_down</mat-icon>
           </button>
           <mat-menu #userMenu="matMenu" class="user-menu-dropdown">
             <div class="user-info-header">

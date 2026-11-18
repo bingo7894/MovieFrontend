@@ -1,10 +1,12 @@
-import { ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { finalize, Subscription } from 'rxjs';
 import { CurriculumService } from '../../../shared/services/curriculum-service';
 import { MediaService } from '../../../shared/services/media-service';
 import { NotificationService } from '../../../shared/services/notification-service';
 import { ErrorHandlerService } from '../../../shared/services/error-handler-service';
+import { UtilityService } from '../../../shared/services/utility-service';
 
 @Component({
   selector: 'app-manage-episode',
@@ -12,12 +14,14 @@ import { ErrorHandlerService } from '../../../shared/services/error-handler-serv
   templateUrl: './manage-episode.html',
   styleUrl: './manage-episode.css',
 })
-export class ManageEpisode implements OnInit {
+export class ManageEpisode implements OnInit, OnDestroy {
   episodeForm!: FormGroup;
   isEditMode = false;
   isSaving = false;
+  isUploading = false;
   uploadProgress = 0;
   videoPreviewUrl: string | null = null;
+  private uploadSub: Subscription | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -25,7 +29,7 @@ export class ManageEpisode implements OnInit {
     private mediaService: MediaService,
     private notification: NotificationService,
     private errorHandler: ErrorHandlerService,
-    private cdr: ChangeDetectorRef,
+    public utilityService: UtilityService,
     public dialogRef: MatDialogRef<ManageEpisode>,
     @Inject(MAT_DIALOG_DATA) public data: any,
   ) {
@@ -59,8 +63,17 @@ export class ManageEpisode implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    this.uploadSub?.unsubscribe();
+    if (this.videoPreviewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(this.videoPreviewUrl);
+    }
+  }
+
   onVideoPicked(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
     if (!file) return;
 
     const validExts = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.3gp', '.mpeg', '.mpg', '.ogg'];
@@ -71,57 +84,78 @@ export class ManageEpisode implements OnInit {
       return;
     }
 
+    if (this.videoPreviewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(this.videoPreviewUrl);
+    }
+
     const blobUrl = URL.createObjectURL(file);
     this.videoPreviewUrl = blobUrl;
-    this.extractDuration(file);
+    this.episodeForm.patchValue({ duration: 0 });
+    this.extractDuration(file, blobUrl);
 
+    this.uploadSub?.unsubscribe();
     this.uploadProgress = 0;
-    this.mediaService.uploadFile(file, 'video').subscribe({
-      next: ({ progress, uuid }) => {
-        this.uploadProgress = progress;
-        if (uuid) {
-          this.episodeForm.patchValue({ videoUuid: uuid });
-          this.notification.success('Episode video uploaded');
-        }
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.uploadProgress = 0;
-        if (this.videoPreviewUrl === blobUrl) {
-          URL.revokeObjectURL(blobUrl);
-          this.videoPreviewUrl = null;
-        }
-        this.errorHandler.handle(err, 'Failed to upload video');
-        this.cdr.detectChanges();
-      },
-    });
+    this.isUploading = true;
+    this.uploadSub = this.mediaService
+      .uploadFile(file, 'video')
+      .pipe(finalize(() => (this.isUploading = false)))
+      .subscribe({
+        next: ({ progress, uuid }) => {
+          this.uploadProgress = progress;
+          if (uuid) {
+            this.episodeForm.patchValue({ videoUuid: uuid });
+            this.notification.success('Episode video uploaded');
+          }
+        },
+        error: (err) => {
+          this.uploadProgress = 0;
+          if (this.videoPreviewUrl === blobUrl) {
+            URL.revokeObjectURL(blobUrl);
+            this.videoPreviewUrl = null;
+          }
+          this.errorHandler.handle(err, 'Failed to upload video');
+        },
+      });
   }
 
-  private extractDuration(file: File): void {
+  onVideoMetadataLoaded(event: Event): void {
+    const videoEl = event.target as HTMLVideoElement;
+    if (videoEl && isFinite(videoEl.duration) && videoEl.duration > 0) {
+      const detected = Math.round(videoEl.duration);
+      if (detected > 0 && (this.episodeForm.value.duration ?? 0) !== detected) {
+        this.episodeForm.patchValue({ duration: detected });
+      }
+    }
+  }
+
+  private extractDuration(file: File, expectedBlobUrl: string): void {
     const videoEl = document.createElement('video');
     videoEl.preload = 'metadata';
     const url = URL.createObjectURL(file);
     videoEl.src = url;
     videoEl.onloadedmetadata = () => {
-      const duration = isFinite(videoEl.duration) ? Math.round(videoEl.duration) : 0;
-      this.episodeForm.patchValue({ duration });
+      if (this.videoPreviewUrl === expectedBlobUrl && isFinite(videoEl.duration)) {
+        const duration = Math.round(videoEl.duration);
+        this.episodeForm.patchValue({ duration });
+      }
       URL.revokeObjectURL(url);
-      this.cdr.detectChanges();
     };
     videoEl.onerror = () => URL.revokeObjectURL(url);
   }
 
   removeVideo(): void {
+    this.uploadSub?.unsubscribe();
     if (this.videoPreviewUrl?.startsWith('blob:')) {
       URL.revokeObjectURL(this.videoPreviewUrl);
     }
     this.videoPreviewUrl = null;
     this.episodeForm.patchValue({ videoUuid: '', duration: 0 });
     this.uploadProgress = 0;
+    this.isUploading = false;
   }
 
   onSave(): void {
-    if (this.episodeForm.invalid) return;
+    if (this.isSaving || this.isUploading || this.episodeForm.invalid) return;
     this.isSaving = true;
     const payload = this.episodeForm.value;
 
@@ -129,16 +163,13 @@ export class ManageEpisode implements OnInit {
       ? this.curriculumService.updateEpisode(this.data.episode.id, payload)
       : this.curriculumService.createEpisode(this.data.topicId, payload);
 
-    op$.subscribe({
+    op$.pipe(finalize(() => (this.isSaving = false))).subscribe({
       next: (saved) => {
-        this.isSaving = false;
         this.notification.success(this.isEditMode ? 'Episode updated' : 'Episode created');
         this.dialogRef.close(saved);
       },
       error: (err) => {
-        this.isSaving = false;
         this.errorHandler.handle(err, 'Failed to save episode');
-        this.cdr.detectChanges();
       },
     });
   }

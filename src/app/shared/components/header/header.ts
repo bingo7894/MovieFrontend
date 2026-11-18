@@ -15,6 +15,7 @@ export class Header implements OnInit, OnDestroy {
   currentUser: any = null;
   isAdminMode: boolean = false;
   private routerSubscription: Subscription | null = null;
+  private userSubscription: Subscription | null = null;
 
   constructor(
     private authService: AuthService,
@@ -23,8 +24,9 @@ export class Header implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.currentUser = this.authService.getCurrentUser();
-    console.log('ข้อมูล User ที่ดึงมาได้:', this.currentUser);
+    this.userSubscription = this.authService.currentUser$.subscribe((user) => {
+      this.currentUser = user;
+    });
     this.updateMode();
 
     this.routerSubscription = this.router.events
@@ -39,9 +41,8 @@ export class Header implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.routerSubscription) {
-      this.routerSubscription.unsubscribe();
-    }
+    this.routerSubscription?.unsubscribe();
+    this.userSubscription?.unsubscribe();
   }
 
   isAdmin(): boolean {

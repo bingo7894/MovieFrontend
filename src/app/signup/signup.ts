@@ -1,10 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { AuthService } from '../shared/services/auth-service';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize } from 'rxjs';
+import { AuthService } from '../shared/services/auth-service';
 import { NotificationService } from '../shared/services/notification-service';
 import { ErrorHandlerService } from '../shared/services/error-handler-service';
-import { email, form } from '@angular/forms/signals';
 
 @Component({
   selector: 'app-signup',
@@ -44,12 +44,12 @@ export class Signup implements OnInit {
 
     const email = this.route.snapshot.queryParams['email'];
     if (email) {
-      this.signupForm.patchValue({ email: email });
-      console.log(email);
+      this.signupForm.patchValue({ email });
     }
   }
 
   submit() {
+    if (this.loading || this.signupForm.invalid) return;
     this.loading = true;
     const formData = this.signupForm.value;
     const data = {
@@ -58,16 +58,17 @@ export class Signup implements OnInit {
       fullname: formData.fullName,
     };
 
-    this.authService.signup(data).subscribe({
-      next: (response: any) => {
-        this.loading = false;
-        this.notification.success(response?.message);
-        this.router.navigate(['/login']);
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorHandlerService.handle(err, 'Registration failed, Please try again');
-      },
-    });
+    this.authService
+      .signup(data)
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: (response: any) => {
+          this.notification.success(response?.message || 'Registration successful!');
+          this.router.navigate(['/login']);
+        },
+        error: (err) => {
+          this.errorHandlerService.handle(err, 'Registration failed, please try again');
+        },
+      });
   }
 }

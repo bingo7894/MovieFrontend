@@ -1,6 +1,7 @@
-import { ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { finalize } from 'rxjs';
 import { QuizService } from '../../../shared/services/quiz-service';
 import { NotificationService } from '../../../shared/services/notification-service';
 import { ErrorHandlerService } from '../../../shared/services/error-handler-service';
@@ -22,7 +23,6 @@ export class QuizBuilder implements OnInit {
     private quizService: QuizService,
     private notification: NotificationService,
     private errorHandler: ErrorHandlerService,
-    private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<QuizBuilder>,
     @Inject(MAT_DIALOG_DATA) public data: any,
   ) {
@@ -39,25 +39,24 @@ export class QuizBuilder implements OnInit {
   ngOnInit(): void {
     if (this.isEditMode) {
       this.loading = true;
-      this.quizService.getAdminQuiz(this.data.quizId).subscribe({
-        next: (quiz: any) => {
-          this.quizForm.patchValue({
-            title: quiz.title,
-            description: quiz.description || '',
-            passingScore: quiz.passingScore ?? 70,
-            published: quiz.published !== false,
-          });
-          this.questions.clear();
-          (quiz.questions || []).forEach((q: any) => this.addQuestion(q));
-          this.loading = false;
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          this.loading = false;
-          this.errorHandler.handle(err, 'Failed to load quiz');
-          this.cdr.detectChanges();
-        },
-      });
+      this.quizService
+        .getAdminQuiz(this.data.quizId)
+        .pipe(finalize(() => (this.loading = false)))
+        .subscribe({
+          next: (quiz: any) => {
+            this.quizForm.patchValue({
+              title: quiz.title,
+              description: quiz.description || '',
+              passingScore: quiz.passingScore ?? 70,
+              published: quiz.published !== false,
+            });
+            this.questions.clear();
+            (quiz.questions || []).forEach((q: any) => this.addQuestion(q));
+          },
+          error: (err) => {
+            this.errorHandler.handle(err, 'Failed to load quiz');
+          },
+        });
     } else {
       this.addQuestion();
     }
@@ -148,16 +147,13 @@ export class QuizBuilder implements OnInit {
       ? this.quizService.updateQuiz(this.data.quizId, payload)
       : this.quizService.createQuiz(this.data.episodeId, payload);
 
-    op$.subscribe({
+    op$.pipe(finalize(() => (this.isSaving = false))).subscribe({
       next: (saved) => {
-        this.isSaving = false;
         this.notification.success(this.isEditMode ? 'Quiz updated' : 'Quiz created');
         this.dialogRef.close(saved);
       },
       error: (err) => {
-        this.isSaving = false;
         this.errorHandler.handle(err, 'Failed to save quiz');
-        this.cdr.detectChanges();
       },
     });
   }

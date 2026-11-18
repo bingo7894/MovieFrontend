@@ -6,7 +6,7 @@
     </div>
     <div class="header-actions">
       <button mat-raised-button color="primary" (click)="createNew()">
-        <mat-icon>add_circle</mat-icon> Create Course
+        <mat-icon>add</mat-icon> Create Course
       </button>
       <button mat-icon-button (click)="load()" [disabled]="loading" matTooltip="Refresh">
         <mat-icon>refresh</mat-icon>
@@ -72,7 +72,9 @@
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>
   }
 
-  @if (!loading && courses.length > 0) {
+  <div [class.is-refreshing]="refreshing">
+
+  @if (courses.length > 0) {
     <div class="course-grid">
       @for (c of courses; track c.id) {
         <div class="course-card">
@@ -133,9 +135,10 @@
       <p>{{ searchQuery ? 'Try a different search keyword' : 'Create your first course and start adding topics and EPs' }}</p>
       @if (!searchQuery) {
         <button mat-raised-button color="primary" (click)="createNew()">
-          <mat-icon>add_circle</mat-icon> Create Course
+          <mat-icon>add</mat-icon> Create Course
         </button>
       }
     </div>
   }
+  </div>
 </div>

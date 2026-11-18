@@ -2,8 +2,8 @@
   <div class="bg"></div>
 
   <div class="logo">
-    <mat-icon class="logo-icon">movie</mat-icon>
-    <span class="logo-text">PulseScreen</span>
+    <mat-icon class="logo-icon">school</mat-icon>
+    <span class="logo-text">PulseLearn LMS</span>
   </div>
 
   <mat-card class="auth-card" appearance="outlined">
@@ -38,11 +38,11 @@
 
       <button
         mat-flat-button
-        class="sign in btn"
+        class="sign-in-btn"
         type="submit"
         [disabled]="loading || !loginForm.valid"
       >
-        {{ loading ? 'Signing...' : 'Sign In' }}
+        {{ loading ? 'Signing in...' : 'Sign In' }}
       </button>
 
       @if (showResendLink) {
@@ -54,7 +54,7 @@
       <button type="button" class="link-btn forgot" (click)="forgot()">Forgot Password ?</button>
 
       <div class="signup">
-        <span>New to PulseScreen</span>
+        <span>New to PulseLearn LMS?</span>
         <a routerLink="/signup" class="link">Sign up now.</a>
       </div>
     </form>

@@ -17,14 +17,25 @@
         </label>
       } @else {
         <div class="video-preview">
-          <video [src]="videoPreviewUrl" controls preload="metadata"></video>
-          <button mat-icon-button class="remove-btn" (click)="removeVideo()" type="button">
+          <video [src]="videoPreviewUrl" controls preload="metadata" (loadedmetadata)="onVideoMetadataLoaded($event)"></video>
+          <button mat-icon-button class="remove-btn" (click)="removeVideo()" type="button" [disabled]="isUploading">
             <mat-icon>delete</mat-icon>
           </button>
+          <div class="video-meta-bar">
+            <mat-icon>schedule</mat-icon>
+            <span>
+              Duration:
+              <strong>{{
+                (episodeForm.value.duration || 0) > 0
+                  ? utilityService.formatDuration(episodeForm.value.duration)
+                  : 'Auto-detected from clip'
+              }}</strong>
+            </span>
+          </div>
         </div>
       }
 
-      @if (uploadProgress > 0 && uploadProgress < 100) {
+      @if (isUploading || (uploadProgress > 0 && uploadProgress < 100)) {
         <div class="progress-wrap">
           <mat-progress-bar [value]="uploadProgress" mode="determinate"></mat-progress-bar>
           <span>Uploading... {{ uploadProgress }}%</span>
@@ -44,11 +55,6 @@
         @if (episodeForm.get('title')?.hasError('required')) {
           <mat-error>Episode title is required</mat-error>
         }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Duration (seconds)</mat-label>
-        <input matInput type="number" min="0" formControlName="duration" />
       </mat-form-field>
     </div>
 
@@ -82,7 +88,7 @@
       mat-raised-button
       color="primary"
       (click)="onSave()"
-      [disabled]="isSaving || episodeForm.invalid || (uploadProgress > 0 && uploadProgress < 100)"
+      [disabled]="isSaving || isUploading || episodeForm.invalid"
       type="button"
     >
       <mat-icon>{{ isSaving ? 'hourglass_empty' : 'save' }}</mat-icon>

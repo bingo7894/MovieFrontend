@@ -2,13 +2,13 @@
   <div class="bg"></div>
 
   <div class="logo">
-    <mat-icon class="logo.icon">movie</mat-icon>
-    <span class="logo-text">PulseScreen</span>
+    <mat-icon class="logo-icon">school</mat-icon>
+    <span class="logo-text">PulseLearn LMS</span>
   </div>
 
   <mat-card class="signup-card" appearance="outlined">
     <h1>Sign up</h1>
-    <p class="subtitle">Create an account to start watching.</p>
+    <p class="subtitle">Create an account to start learning.</p>
 
     <form [formGroup]="signupForm" (ngSubmit)="submit()" class="form">
       <mat-form-field appearance="outline" class="field">
@@ -89,7 +89,7 @@
 
       <button
         mat-flat-button
-        class="signup-btn"
+        class="sign-up-btn"
         type="submit"
         [disabled]="loading || !signupForm.valid"
       >

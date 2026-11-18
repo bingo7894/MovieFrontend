@@ -44,11 +44,11 @@
     </div>
   </div>
 
-  @if (loading) {
+  @if (loading || refreshing) {
     <mat-progress-bar mode="indeterminate" class="loading-bar"></mat-progress-bar>
   }
 
-  @if (error && !loading) {
+  @if (error && !loading && paginatedUsers.length === 0) {
     <div class="error-container">
       <mat-icon class="error-icon">error_outline</mat-icon>
       <h2>Oops! Something went wrong</h2>
@@ -60,7 +60,7 @@
     </div>
   }
 
-  @if (!loading && !error && paginatedUsers.length > 0) {
+  @if (!error && paginatedUsers.length > 0) {
     <div class="users-grid">
       @for (user of paginatedUsers; track user.id) {
         <div class="user-card" [class.current-user]="isCurrentUser(user)">

@@ -17,7 +17,20 @@ export class AuthService {
   constructor(
     private http: HttpClient,
     private router: Router,
-  ) {}
+  ) {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (event) => {
+        if (event.key !== 'token') return;
+        this.initializeAuth().then(() => {
+          if (!this.isLoggedIn()) {
+            this.router.navigate(['/']);
+          } else if (!this.isAdmin() && this.router.url.startsWith('/admin')) {
+            this.router.navigate(['/home']);
+          }
+        });
+      });
+    }
+  }
 
   passwordMatchValidator(passwordControlName: string): ValidatorFn {
     return (confirmControl: AbstractControl): ValidationErrors | null => {

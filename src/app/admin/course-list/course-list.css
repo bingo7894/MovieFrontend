@@ -1,68 +1,70 @@
 .course-list-container {
-  max-width: 1400px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 28px 24px 60px;
+  padding: 12px 16px 36px;
 }
 .header-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 14px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 .page-title {
   margin: 0;
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
 }
 .page-subtitle {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
+  font-size: 13px;
   color: var(--muted);
 }
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 14px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
 }
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px;
+  gap: 10px;
+  padding: 10px 14px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
 }
 .stat-card mat-icon {
   color: var(--accent);
-  font-size: 30px;
-  width: 30px;
-  height: 30px;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
 }
 .stat-card strong {
   display: block;
-  font-size: 22px;
+  font-size: 18px;
+  line-height: 1.2;
 }
 .stat-card span {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
 }
 .search-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 4px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 .search-bar input {
   flex: 1;
@@ -70,7 +72,8 @@
   border: none;
   outline: none;
   color: var(--text);
-  padding: 6px 0;
+  font-size: 14px;
+  padding: 4px 0;
 }
 .search-count {
   font-size: 12px;
@@ -78,8 +81,8 @@
 }
 .course-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(min(255px, 100%), 1fr));
+  gap: 18px;
 }
 .course-card {
   background: var(--surface);
@@ -88,10 +91,11 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 410px;
 }
 .card-thumb {
   position: relative;
-  height: 180px;
+  height: 215px;
   background: #101010;
   cursor: pointer;
 }
@@ -135,11 +139,11 @@
   color: #fff;
 }
 .card-body {
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 10px;
+  gap: 8px;
 }
 .category-tag {
   font-size: 11px;
@@ -150,21 +154,24 @@
 }
 .card-body h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 15px;
+  line-height: 1.35;
   cursor: pointer;
 }
 .desc {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.45;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 52px;
 }
 .meta-row {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
   font-size: 12px;
   color: var(--muted);
@@ -175,31 +182,64 @@
   gap: 4px;
 }
 .meta-row mat-icon {
-  font-size: 16px;
-  width: 16px;
-  height: 16px;
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
 }
 .card-footer {
   margin-top: auto;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+}
+.actions .mat-mdc-raised-button {
+  height: 32px;
+  padding: 0 10px !important;
+  font-size: 12px;
+}
+.actions .mat-mdc-icon-button {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  --mat-icon-button-state-layer-size: 32px;
+}
+.actions .mat-mdc-icon-button mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+.is-refreshing {
+  opacity: 0.65;
+  transition: opacity 0.15s ease;
 }
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 42px 20px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
   color: var(--muted);
 }
-.empty-state mat-icon {
-  font-size: 64px;
-  width: 64px;
-  height: 64px;
+.empty-state > mat-icon {
+  font-size: 52px;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 10px;
+  opacity: 0.75;
+}
+.empty-state h2 {
+  margin: 0 0 8px;
+  color: var(--text);
+}
+.empty-state p {
+  margin: 0 0 20px;
 }

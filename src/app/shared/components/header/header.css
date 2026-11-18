@@ -15,33 +15,34 @@
 }
 
 .header-content {
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 16px 40px;
+  padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 32px;
+  gap: 20px;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 24px;
+  gap: 10px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.4px;
   flex-shrink: 0;
 }
 
 .logo-icon {
-  font-size: 32px;
-  width: 32px;
-  height: 32px;
-  color: #4a148c;
+  font-size: 26px;
+  width: 26px;
+  height: 26px;
+  color: #e50914;
 }
 
 .logo-text {
-  background: linear-gradient(135deg, #4a148c 0%, #ff6b6b 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #ff6b6b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -135,7 +136,10 @@
 .profile-name {
   font-size: 14px;
   font-weight: 600;
-  text-transform: capitalize;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dropdown-icon {
@@ -261,7 +265,7 @@
 .main-content {
   width: 100%;
   max-width: 100%;
-  padding: 32px;
+  padding: 6px 12px 24px;
 }
 
 @media (max-width: 1024px) {

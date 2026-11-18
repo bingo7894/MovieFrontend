@@ -1,5 +1,6 @@
-import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize } from 'rxjs';
 import { CourseService } from '../../shared/services/course-service';
 import { MediaService } from '../../shared/services/media-service';
 import { ProgressService } from '../../shared/services/progress-service';
@@ -52,7 +53,6 @@ export class CoursePlayer implements OnInit, OnDestroy {
     public utilityService: UtilityService,
     private notification: NotificationService,
     private errorHandler: ErrorHandlerService,
-    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -69,33 +69,31 @@ export class CoursePlayer implements OnInit, OnDestroy {
     const requestedEpId =
       preserveEpisodeId || Number(this.route.snapshot.queryParamMap.get('ep')) || undefined;
 
-    this.courseService.getCourseDetail(this.courseId).subscribe({
-      next: (course: any) => {
-        this.course = course;
-        this.flatEpisodes = [];
-        for (const topic of course.topics || []) {
-          for (const ep of topic.episodes || []) {
-            this.flatEpisodes.push({ topic, episode: ep });
+    this.courseService
+      .getCourseDetail(this.courseId)
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: (course: any) => {
+          this.course = course;
+          this.flatEpisodes = [];
+          for (const topic of course.topics || []) {
+            for (const ep of topic.episodes || []) {
+              this.flatEpisodes.push({ topic, episode: ep });
+            }
           }
-        }
 
-        if (this.flatEpisodes.length > 0) {
-          const target =
-            (requestedEpId && this.flatEpisodes.find((item) => item.episode.id === requestedEpId)) ||
-            this.flatEpisodes.find((item) => !item.episode.completed) ||
-            this.flatEpisodes[0];
-          this.selectEpisode(target.topic, target.episode, false);
-        }
-
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorHandler.handle(err, 'Failed to load course');
-        this.cdr.detectChanges();
-      },
-    });
+          if (this.flatEpisodes.length > 0) {
+            const target =
+              (requestedEpId && this.flatEpisodes.find((item) => item.episode.id === requestedEpId)) ||
+              this.flatEpisodes.find((item) => !item.episode.completed) ||
+              this.flatEpisodes[0];
+            this.selectEpisode(target.topic, target.episode, false);
+          }
+        },
+        error: (err) => {
+          this.errorHandler.handle(err, 'Failed to load course');
+        },
+      });
   }
 
   selectEpisode(topic: any, episode: any, savePrevious: boolean = true): void {
@@ -112,23 +110,19 @@ export class CoursePlayer implements OnInit, OnDestroy {
       ? this.mediaService.getMediaUrl(episode.videoUuid, 'video')
       : null;
 
-    // Reset quiz state
     this.activeQuiz = null;
     this.quizResult = null;
     this.selectedAnswers = {};
     this.quizAttempts = [];
 
-    // Load notes for this episode
     this.loadNotes(episode.id);
 
-    // Sync query param cleanly
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { ep: episode.id },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
-    this.cdr.detectChanges();
   }
 
   onVideoLoadedMetadata(): void {
@@ -145,7 +139,9 @@ export class CoursePlayer implements OnInit, OnDestroy {
     const el = this.videoRef?.nativeElement;
     if (!el) return;
     const sec = Math.floor(el.currentTime || 0);
-    this.currentVideoTime = sec;
+    if (sec !== this.currentVideoTime) {
+      this.currentVideoTime = sec;
+    }
     if (Math.abs(sec - this.lastSavedSecond) >= 10) {
       this.flushVideoProgress(false);
     }
@@ -173,7 +169,6 @@ export class CoursePlayer implements OnInit, OnDestroy {
           ep.completed = true;
           this.recalculateCourseProgress();
         }
-        this.cdr.detectChanges();
       },
     });
   }
@@ -191,7 +186,6 @@ export class CoursePlayer implements OnInit, OnDestroy {
           this.currentEpisode.completed = res.completed;
           this.recalculateCourseProgress();
           this.notification.success(res.completed ? 'Marked episode as completed' : 'Marked as incomplete');
-          this.cdr.detectChanges();
         },
         error: (err) => this.errorHandler.handle(err, 'Failed to update progress'),
       });
@@ -250,7 +244,6 @@ export class CoursePlayer implements OnInit, OnDestroy {
         this.notification.success(
           this.course.enrolled ? 'Saved to My Learning' : 'Removed from My Learning',
         );
-        this.cdr.detectChanges();
       },
       error: (err) => this.errorHandler.handle(err, 'Failed to update enrollment'),
     });
@@ -267,26 +260,24 @@ export class CoursePlayer implements OnInit, OnDestroy {
     this.quizResult = null;
     this.selectedAnswers = {};
 
-    this.quizService.getQuiz(quizSummary.id).subscribe({
-      next: (quiz: any) => {
-        this.activeQuiz = quiz;
-        this.quizLoading = false;
-        this.loadQuizAttempts(quiz.id);
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.quizLoading = false;
-        this.errorHandler.handle(err, 'Failed to load quiz');
-        this.cdr.detectChanges();
-      },
-    });
+    this.quizService
+      .getQuiz(quizSummary.id)
+      .pipe(finalize(() => (this.quizLoading = false)))
+      .subscribe({
+        next: (quiz: any) => {
+          this.activeQuiz = quiz;
+          this.loadQuizAttempts(quiz.id);
+        },
+        error: (err) => {
+          this.errorHandler.handle(err, 'Failed to load quiz');
+        },
+      });
   }
 
   loadQuizAttempts(quizId: number): void {
     this.quizService.getAttempts(quizId).subscribe({
       next: (attempts: any) => {
         this.quizAttempts = attempts || [];
-        this.cdr.detectChanges();
       },
     });
   }
@@ -310,28 +301,28 @@ export class CoursePlayer implements OnInit, OnDestroy {
   }
 
   submitQuiz(): void {
-    if (!this.activeQuiz) return;
+    if (!this.activeQuiz || this.submittingQuiz) return;
     this.submittingQuiz = true;
-    this.quizService.submitQuiz(this.activeQuiz.id, this.selectedAnswers).subscribe({
-      next: (result: any) => {
-        this.submittingQuiz = false;
-        this.quizResult = result;
-        this.loadQuizAttempts(this.activeQuiz.id);
+    this.quizService
+      .submitQuiz(this.activeQuiz.id, this.selectedAnswers)
+      .pipe(finalize(() => (this.submittingQuiz = false)))
+      .subscribe({
+        next: (result: any) => {
+          this.quizResult = result;
+          this.loadQuizAttempts(this.activeQuiz.id);
 
-        // Update quiz summary on currentEpisode
-        const summary = (this.currentEpisode?.quizzes || []).find((q: any) => q.id === this.activeQuiz.id);
-        if (summary) {
-          summary.bestScore = Math.max(summary.bestScore || 0, result.scorePercent);
-          summary.passed = summary.passed || result.passed;
-        }
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.submittingQuiz = false;
-        this.errorHandler.handle(err, 'Failed to submit quiz');
-        this.cdr.detectChanges();
-      },
-    });
+          const summary = (this.currentEpisode?.quizzes || []).find(
+            (q: any) => q.id === this.activeQuiz.id,
+          );
+          if (summary) {
+            summary.bestScore = Math.max(summary.bestScore || 0, result.scorePercent);
+            summary.passed = summary.passed || result.passed;
+          }
+        },
+        error: (err) => {
+          this.errorHandler.handle(err, 'Failed to submit quiz');
+        },
+      });
   }
 
   // ===== Notes =====
@@ -339,13 +330,12 @@ export class CoursePlayer implements OnInit, OnDestroy {
     this.progressService.getNotes(episodeId).subscribe({
       next: (notes: any) => {
         this.notes = notes || [];
-        this.cdr.detectChanges();
       },
     });
   }
 
   addNote(): void {
-    if (!this.currentEpisode || !this.newNoteText.trim()) return;
+    if (!this.currentEpisode || !this.newNoteText.trim() || this.savingNote) return;
     this.savingNote = true;
     const timestampSeconds = this.videoRef?.nativeElement
       ? Math.floor(this.videoRef.nativeElement.currentTime || 0)
@@ -356,18 +346,15 @@ export class CoursePlayer implements OnInit, OnDestroy {
         timestampSeconds,
         content: this.newNoteText.trim(),
       })
+      .pipe(finalize(() => (this.savingNote = false)))
       .subscribe({
         next: (note) => {
-          this.savingNote = false;
           this.newNoteText = '';
           this.notes = [...this.notes, note].sort((a, b) => a.timestampSeconds - b.timestampSeconds);
           this.notification.success('Note saved');
-          this.cdr.detectChanges();
         },
         error: (err) => {
-          this.savingNote = false;
           this.errorHandler.handle(err, 'Failed to save note');
-          this.cdr.detectChanges();
         },
       });
   }
@@ -383,7 +370,6 @@ export class CoursePlayer implements OnInit, OnDestroy {
     this.progressService.deleteNote(noteId).subscribe({
       next: () => {
         this.notes = this.notes.filter((n) => n.id !== noteId);
-        this.cdr.detectChanges();
       },
       error: (err) => this.errorHandler.handle(err, 'Failed to delete note'),
     });

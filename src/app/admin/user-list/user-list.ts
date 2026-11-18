@@ -1,4 +1,5 @@
-import { ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { debounceTime, distinctUntilChanged, finalize, Subject } from 'rxjs';
 import { UserService } from '../../user-service';
 import { AuthService } from '../../shared/services/auth-service';
 import { DialogService } from '../../shared/services/dialog-service';
@@ -11,13 +12,14 @@ import { ErrorHandlerService } from '../../shared/services/error-handler-service
   templateUrl: './user-list.html',
   styleUrl: './user-list.css',
 })
-export class UserList implements OnInit {
-  paginatedUsers: any = [];
+export class UserList implements OnInit, OnDestroy {
+  paginatedUsers: any[] = [];
   loading = true;
+  refreshing = false;
   loadingMore = false;
   error = false;
   currentUserEmail: string | null = null;
-  searchQuery: string = '';
+  searchQuery = '';
 
   pageSize = 10;
   currentPage = 0;
@@ -25,19 +27,27 @@ export class UserList implements OnInit {
   totalUsers = 0;
   hasMoreUsers = true;
 
+  private searchSubject = new Subject<string>();
+
   constructor(
     private userService: UserService,
     private authService: AuthService,
     private dialogService: DialogService,
     private notification: NotificationService,
     private errorHandlerService: ErrorHandlerService,
-    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     const currentUser = this.authService.getCurrentUser();
     this.currentUserEmail = currentUser?.email || null;
     this.loadUsers();
+    this.searchSubject.pipe(debounceTime(350), distinctUntilChanged()).subscribe(() => {
+      this.loadUsers();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.searchSubject.complete();
   }
 
   @HostListener('window:scroll')
@@ -49,89 +59,98 @@ export class UserList implements OnInit {
       scrollPosition >= pageHeight - 200 &&
       !this.loadingMore &&
       !this.loading &&
+      !this.refreshing &&
       this.hasMoreUsers
     ) {
       this.loadMoreUsers();
     }
   }
 
-  loadUsers() {
-    this.loading = true;
+  loadUsers(): void {
     this.error = false;
     this.currentPage = 0;
-    this.paginatedUsers = [];
+    if (this.paginatedUsers.length === 0) {
+      this.loading = true;
+    } else {
+      this.refreshing = true;
+    }
+
     const search = this.searchQuery.trim() || undefined;
 
-    this.userService.getAllUsers(this.currentPage, this.pageSize, search).subscribe({
-      next: (response: any) => {
-        this.paginatedUsers = response.content;
-        this.totalUsers = response.totalElements;
-        this.totalPages = response.totalPages;
-        this.currentPage = response.number;
-        this.hasMoreUsers = this.currentPage < this.totalPages - 1;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.error = true;
-        this.loading = false;
-        this.errorHandlerService.handle(err, 'Failed to load users');
-        this.cdr.detectChanges();
-      },
-    });
+    this.userService
+      .getAllUsers(0, this.pageSize, search)
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.refreshing = false;
+        }),
+      )
+      .subscribe({
+        next: (response: any) => {
+          this.paginatedUsers = response.content || [];
+          this.totalUsers = response.totalElements || 0;
+          this.totalPages = response.totalPages || 0;
+          this.currentPage = response.number || 0;
+          this.hasMoreUsers = this.currentPage < this.totalPages - 1;
+        },
+        error: (err) => {
+          if (this.paginatedUsers.length === 0) this.error = true;
+          this.errorHandlerService.handle(err, 'Failed to load users');
+        },
+      });
   }
 
-  loadMoreUsers() {
+  loadMoreUsers(): void {
     if (this.loadingMore || !this.hasMoreUsers) return;
     this.loadingMore = true;
     const nextPage = this.currentPage + 1;
     const search = this.searchQuery.trim() || undefined;
 
-    this.userService.getAllUsers(nextPage, this.pageSize, search).subscribe({
-      next: (response: any) => {
-        this.paginatedUsers = [...this.paginatedUsers, ...response.content];
-        this.currentPage = response.number;
-        this.hasMoreUsers = this.currentPage < this.totalPages - 1;
-        this.loadingMore = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.loadingMore = false;
-        this.errorHandlerService.handle(err, 'failed to load more users');
-        this.cdr.detectChanges();
-      },
-    });
+    this.userService
+      .getAllUsers(nextPage, this.pageSize, search)
+      .pipe(finalize(() => (this.loadingMore = false)))
+      .subscribe({
+        next: (response: any) => {
+          this.paginatedUsers = [...this.paginatedUsers, ...(response.content || [])];
+          this.currentPage = response.number;
+          this.hasMoreUsers = this.currentPage < this.totalPages - 1;
+        },
+        error: (err) => {
+          this.errorHandlerService.handle(err, 'Failed to load more users');
+        },
+      });
   }
 
-  onSearchChange(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.searchQuery = input.value;
-    this.currentPage = 0;
+  onSearchChange(event: Event): void {
+    this.searchQuery = (event.target as HTMLInputElement).value;
+    this.searchSubject.next(this.searchQuery);
+  }
+
+  clearSearch(): void {
+    this.searchQuery = '';
     this.loadUsers();
   }
 
-  clearSearch() {
-    this.searchQuery = '';
-    this.currentPage = 0;
-    this.loadUsers(); // แก้ไขจาก loadMoreUsers() เป็น loadUsers()
+  createUser(): void {
+    this.dialogService
+      .openManageUserDialog('create')
+      .afterClosed()
+      .subscribe((response) => {
+        if (response) {
+          this.loadUsers();
+        }
+      });
   }
 
-  createUser() {
-    const dialogRef = this.dialogService.openManageUserDialog('create');
-    dialogRef.afterClosed().subscribe((response) => {
-      if (response) {
-        this.loadUsers();
-      }
-    });
-  }
-
-  editUser(user: any) {
-    const dialogRef = this.dialogService.openManageUserDialog('edit', user);
-    dialogRef.afterClosed().subscribe((response) => {
-      if (response) {
-        this.loadUsers();
-      }
-    });
+  editUser(user: any): void {
+    this.dialogService
+      .openManageUserDialog('edit', user)
+      .afterClosed()
+      .subscribe((response) => {
+        if (response) {
+          this.loadUsers();
+        }
+      });
   }
 
   isCurrentUser(user: any): boolean {
@@ -141,8 +160,8 @@ export class UserList implements OnInit {
   toggleUserStatus(user: any): void {
     this.userService.toggleUserStatus(user.id).subscribe({
       next: (response: any) => {
+        user.active = !user.active;
         this.notification.success(response.message);
-        this.loadUsers();
       },
       error: (err) => {
         this.errorHandlerService.handle(err, 'Failed to update user status');
@@ -150,7 +169,7 @@ export class UserList implements OnInit {
     });
   }
 
-  deleteUser(user: any) {
+  deleteUser(user: any): void {
     this.dialogService
       .openConfirmation(
         'Delete User',
@@ -164,7 +183,8 @@ export class UserList implements OnInit {
           this.userService.deleteUser(user.id).subscribe({
             next: (res: any) => {
               this.notification.success(res?.message || 'User deleted successfully');
-              this.loadUsers();
+              this.paginatedUsers = this.paginatedUsers.filter((u) => u.id !== user.id);
+              this.totalUsers = Math.max(0, this.totalUsers - 1);
             },
             error: (err) => {
               this.errorHandlerService.handle(err, 'Failed to delete user');
@@ -174,7 +194,7 @@ export class UserList implements OnInit {
       });
   }
 
-  changeUserRole(user: any) {
+  changeUserRole(user: any): void {
     const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
 
     this.dialogService
@@ -189,8 +209,8 @@ export class UserList implements OnInit {
         if (response) {
           this.userService.changeUserRole(user.id, newRole).subscribe({
             next: (res: any) => {
+              user.role = newRole;
               this.notification.success(res?.message || 'Role updated successfully');
-              this.loadUsers();
             },
             error: (err) => {
               this.errorHandlerService.handle(err, 'Failed to change user role.');

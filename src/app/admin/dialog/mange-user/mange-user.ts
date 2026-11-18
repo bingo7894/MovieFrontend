@@ -1,5 +1,6 @@
-import { ChangeDetectorRef, Component, ErrorHandler, Inject } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { UserService } from '../../../user-service';
 import { NotificationService } from '../../../shared/services/notification-service';
 import { ErrorHandlerService } from '../../../shared/services/error-handler-service';
@@ -22,7 +23,6 @@ export class MangeUser {
     private userService: UserService,
     private notification: NotificationService,
     private errorHandlerService: ErrorHandlerService,
-    private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<MangeUser>,
     @Inject(MAT_DIALOG_DATA) public data: any,
   ) {
@@ -41,6 +41,7 @@ export class MangeUser {
   }
 
   onSave() {
+    if (this.creating || this.userForm.invalid) return;
     this.creating = true;
     const formData = this.userForm.value;
 
@@ -55,17 +56,13 @@ export class MangeUser {
       ? this.userService.updateUser(this.data.user.id, data)
       : this.userService.createUser(data);
 
-    op$.subscribe({
+    op$.pipe(finalize(() => (this.creating = false))).subscribe({
       next: (response: any) => {
-        this.creating = false;
         this.notification.success(response?.message);
         this.dialogRef.close(true);
-        this.cdr.detectChanges();
       },
       error: (err) => {
-        this.creating = false;
         this.errorHandlerService.handle(err, 'Failed to save user');
-        this.cdr.detectChanges();
       },
     });
   }

@@ -1,6 +1,7 @@
-import { ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { finalize } from 'rxjs';
 import { COURSE_CATEGORIES, COURSE_LEVELS } from '../../../shared/constants/app.constants';
 import { CourseService } from '../../../shared/services/course-service';
 import { MediaService } from '../../../shared/services/media-service';
@@ -28,7 +29,6 @@ export class ManageCourse implements OnInit {
     private mediaService: MediaService,
     private notification: NotificationService,
     private errorHandler: ErrorHandlerService,
-    private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<ManageCourse>,
     @Inject(MAT_DIALOG_DATA) public data: any,
   ) {
@@ -72,7 +72,6 @@ export class ManageCourse implements OnInit {
     const reader = new FileReader();
     reader.onload = (e) => {
       this.thumbnailPreviewUrl = e.target?.result as string;
-      this.cdr.detectChanges();
     };
     reader.readAsDataURL(file);
 
@@ -84,12 +83,10 @@ export class ManageCourse implements OnInit {
           this.courseForm.patchValue({ thumbnailUuid: uuid });
           this.notification.success('Thumbnail uploaded successfully');
         }
-        this.cdr.detectChanges();
       },
       error: (err) => {
         this.uploadProgress = 0;
         this.errorHandler.handle(err, 'Failed to upload thumbnail');
-        this.cdr.detectChanges();
       },
     });
   }
@@ -101,7 +98,7 @@ export class ManageCourse implements OnInit {
   }
 
   onSave(): void {
-    if (this.courseForm.invalid) return;
+    if (this.isSaving || this.courseForm.invalid) return;
     this.isSaving = true;
     const payload = this.courseForm.value;
 
@@ -109,16 +106,13 @@ export class ManageCourse implements OnInit {
       ? this.courseService.updateCourse(this.data.course.id, payload)
       : this.courseService.createCourse(payload);
 
-    op$.subscribe({
+    op$.pipe(finalize(() => (this.isSaving = false))).subscribe({
       next: (saved) => {
-        this.isSaving = false;
         this.notification.success(this.isEditMode ? 'Course updated successfully' : 'Course created successfully');
         this.dialogRef.close(saved);
       },
       error: (err) => {
-        this.isSaving = false;
         this.errorHandler.handle(err, 'Failed to save course');
-        this.cdr.detectChanges();
       },
     });
   }

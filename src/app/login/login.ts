@@ -1,5 +1,6 @@
-import { ChangeDetectorRef, Component, ErrorHandler, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { AuthService } from '../shared/services/auth-service';
 import { NotificationService } from '../shared/services/notification-service';
 import { Router } from '@angular/router';
@@ -24,7 +25,6 @@ export class Login implements OnInit {
     private router: Router,
     private notification: NotificationService,
     private errorHandlerService: ErrorHandlerService,
-    private cdr: ChangeDetectorRef,
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -39,6 +39,7 @@ export class Login implements OnInit {
   }
 
   submit() {
+    if (this.loading || this.loginForm.invalid) return;
     this.loading = true;
     const formData = this.loginForm.value;
     const authData = {
@@ -46,32 +47,28 @@ export class Login implements OnInit {
       password: formData.password,
     };
 
-    this.authService.login(authData).subscribe({
-      next: (response: any) => {
-        this.loading = false;
-        this.authService.redirectBasedOnRole();
-
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.loading = false;
-        const errorMsg = err.error?.error || 'Login Failed. Please Cheack your credentials.';
-
-        if (err.status === 403 && errorMsg.toLowerCase().includes('verify')) {
-          this.showResendLink = true;
-          this.userEmail = this.loginForm.value.email;
-        } else {
-          this.showResendLink = false;
-        }
-        this.notification.error(errorMsg);
-        console.error('Login error:', err);
-
-        this.cdr.detectChanges();
-      },
-    });
+    this.authService
+      .login(authData)
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: () => {
+          this.authService.redirectBasedOnRole();
+        },
+        error: (err) => {
+          const errorMsg = err.error?.error || 'Login failed. Please check your credentials.';
+          if (err.status === 403 && errorMsg.toLowerCase().includes('verify')) {
+            this.showResendLink = true;
+            this.userEmail = this.loginForm.value.email?.trim().toLowerCase() || '';
+          } else {
+            this.showResendLink = false;
+          }
+          this.notification.error(errorMsg);
+        },
+      });
   }
 
   resendVerification() {
+    if (this.loading) return;
     if (!this.userEmail) {
       this.notification.error('Please enter your email address');
       return;
@@ -79,21 +76,22 @@ export class Login implements OnInit {
 
     this.showResendLink = false;
     this.loading = true;
-    this.authService.resendVerificationEmail(this.userEmail).subscribe({
-      next: (response: any) => {
-        this.loading = false;
-        this.notification.success(
-          response.message || 'verification email sent! Please check your inbox.',
-        );
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorHandlerService.handle(
-          err,
-          'Failed to send verification email. Please try again. ',
-        );
-      },
-    });
+    this.authService
+      .resendVerificationEmail(this.userEmail)
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: (response: any) => {
+          this.notification.success(
+            response.message || 'Verification email sent! Please check your inbox.',
+          );
+        },
+        error: (err) => {
+          this.errorHandlerService.handle(
+            err,
+            'Failed to send verification email. Please try again.',
+          );
+        },
+      });
   }
 
   forgot() {

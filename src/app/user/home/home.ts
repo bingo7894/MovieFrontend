@@ -1,6 +1,6 @@
-import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, finalize, Subject, Subscription } from 'rxjs';
 import { COURSE_CATEGORIES } from '../../shared/constants/app.constants';
 import { CourseService } from '../../shared/services/course-service';
 import { ProgressService } from '../../shared/services/progress-service';
@@ -18,6 +18,8 @@ import { ErrorHandlerService } from '../../shared/services/error-handler-service
 export class Home implements OnInit, OnDestroy {
   courses: any[] = [];
   loading = true;
+  refreshing = false;
+  hasLoadedOnce = false;
   loadingMore = false;
   error = false;
   searchQuery = '';
@@ -36,6 +38,8 @@ export class Home implements OnInit, OnDestroy {
 
   private searchSubject = new Subject<string>();
   private sliderInterval: any;
+  private coursesSub: Subscription | null = null;
+  private searchSub: Subscription | null = null;
 
   constructor(
     private courseService: CourseService,
@@ -45,45 +49,42 @@ export class Home implements OnInit, OnDestroy {
     public mediaService: MediaService,
     private errorHandler: ErrorHandlerService,
     private router: Router,
-    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.loadFeaturedCourses();
     this.loadCourses();
-    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(() => {
+    this.searchSub = this.searchSubject.pipe(debounceTime(350), distinctUntilChanged()).subscribe(() => {
       this.currentPage = 0;
       this.loadCourses();
     });
   }
 
   ngOnDestroy(): void {
+    this.coursesSub?.unsubscribe();
+    this.searchSub?.unsubscribe();
     this.searchSubject.complete();
     if (this.sliderInterval) clearInterval(this.sliderInterval);
   }
 
   loadFeaturedCourses(): void {
     this.featuredLoading = true;
-    this.courseService.getFeaturedCourses().subscribe({
-      next: (courses: any) => {
-        this.featuredCourses = courses || [];
-        this.featuredLoading = false;
-        if (this.featuredCourses.length > 1) {
-          this.sliderInterval = setInterval(() => this.nextSlide(), 5000);
-        }
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.featuredLoading = false;
-        this.cdr.detectChanges();
-      },
-    });
+    this.courseService
+      .getFeaturedCourses()
+      .pipe(finalize(() => (this.featuredLoading = false)))
+      .subscribe({
+        next: (courses: any) => {
+          this.featuredCourses = courses || [];
+          if (this.featuredCourses.length > 1) {
+            this.sliderInterval = setInterval(() => this.nextSlide(), 6000);
+          }
+        },
+      });
   }
 
   nextSlide(): void {
     if (this.featuredCourses.length > 0) {
       this.currentSlideIndex = (this.currentSlideIndex + 1) % this.featuredCourses.length;
-      this.cdr.detectChanges();
     }
   }
 
@@ -91,7 +92,6 @@ export class Home implements OnInit, OnDestroy {
     if (this.featuredCourses.length > 0) {
       this.currentSlideIndex =
         (this.currentSlideIndex - 1 + this.featuredCourses.length) % this.featuredCourses.length;
-      this.cdr.detectChanges();
     }
   }
 
@@ -99,7 +99,7 @@ export class Home implements OnInit, OnDestroy {
   onScroll(): void {
     const pos = window.pageYOffset + window.innerHeight;
     const height = document.documentElement.scrollHeight;
-    if (pos >= height - 200 && !this.loadingMore && !this.loading && this.hasMoreCourses) {
+    if (pos >= height - 200 && !this.loadingMore && !this.loading && !this.refreshing && this.hasMoreCourses) {
       this.loadMoreCourses();
     }
   }
@@ -107,28 +107,40 @@ export class Home implements OnInit, OnDestroy {
   loadCourses(): void {
     this.error = false;
     this.currentPage = 0;
-    this.courses = [];
-    this.loading = true;
+    if (!this.hasLoadedOnce) {
+      this.loading = true;
+    } else {
+      this.refreshing = true;
+    }
+
     const search = this.searchQuery.trim() || undefined;
     const category = this.selectedCategory || undefined;
 
-    this.courseService.getPublishedCourses(0, this.pageSize, search, category).subscribe({
-      next: (res: any) => {
-        this.courses = res.content || [];
-        this.currentPage = res.number || 0;
-        this.totalElements = res.totalElements || 0;
-        this.totalPages = res.totalPages || 0;
-        this.hasMoreCourses = this.currentPage < this.totalPages - 1;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.error = true;
-        this.loading = false;
-        this.errorHandler.handle(err, 'Failed to load courses');
-        this.cdr.detectChanges();
-      },
-    });
+    this.coursesSub?.unsubscribe();
+    this.coursesSub = this.courseService
+      .getPublishedCourses(0, this.pageSize, search, category)
+      .pipe(
+        finalize(() => {
+          this.hasLoadedOnce = true;
+          this.loading = false;
+          this.refreshing = false;
+        }),
+      )
+      .subscribe({
+        next: (res: any) => {
+          this.courses = res.content || [];
+          this.currentPage = res.number || 0;
+          this.totalElements = res.totalElements || 0;
+          this.totalPages = res.totalPages || 0;
+          this.hasMoreCourses = this.currentPage < this.totalPages - 1;
+        },
+        error: (err) => {
+          if (!this.hasLoadedOnce) {
+            this.error = true;
+          }
+          this.errorHandler.handle(err, 'Failed to load courses');
+        },
+      });
   }
 
   loadMoreCourses(): void {
@@ -138,19 +150,16 @@ export class Home implements OnInit, OnDestroy {
     const search = this.searchQuery.trim() || undefined;
     const category = this.selectedCategory || undefined;
 
-    this.courseService.getPublishedCourses(nextPage, this.pageSize, search, category).subscribe({
-      next: (res: any) => {
-        this.courses = [...this.courses, ...(res.content || [])];
-        this.currentPage = res.number;
-        this.hasMoreCourses = this.currentPage < this.totalPages - 1;
-        this.loadingMore = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.loadingMore = false;
-        this.cdr.detectChanges();
-      },
-    });
+    this.courseService
+      .getPublishedCourses(nextPage, this.pageSize, search, category)
+      .pipe(finalize(() => (this.loadingMore = false)))
+      .subscribe({
+        next: (res: any) => {
+          this.courses = [...this.courses, ...(res.content || [])];
+          this.currentPage = res.number;
+          this.hasMoreCourses = this.currentPage < this.totalPages - 1;
+        },
+      });
   }
 
   onSearch(): void {
@@ -163,7 +172,9 @@ export class Home implements OnInit, OnDestroy {
   }
 
   selectCategory(category: string): void {
-    this.selectedCategory = this.selectedCategory === category ? '' : category;
+    const next = category === '' ? '' : this.selectedCategory === category ? '' : category;
+    if (next === this.selectedCategory) return;
+    this.selectedCategory = next;
     this.loadCourses();
   }
 
