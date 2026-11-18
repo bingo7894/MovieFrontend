@@ -14,9 +14,12 @@
             <h2 class="banner-title">{{ course.title }}</h2>
             <p class="banner-description">{{ course.description || 'Start learning today!' }}</p>
             <div class="banner-actions">
-              <button mat-raised-button color="primary" (click)="openCourse(course)">
+              <button mat-raised-button color="primary" (click)="startLearning(course)">
                 <mat-icon>play_arrow</mat-icon>
                 {{ course.completedEpisodes > 0 ? 'Continue Learning' : 'Start Learning' }}
+              </button>
+              <button mat-stroked-button (click)="openCourse(course)">
+                Course Details
               </button>
             </div>
           </div>
@@ -81,6 +84,30 @@
 
     @if (!loading && !error) {
       <div [class.is-refreshing]="refreshing">
+        @if (inProgressCourses.length > 0 && !searchQuery && !selectedCategory) {
+          <section class="continue-section">
+            <h3 class="section-title">Continue Learning</h3>
+            <div class="continue-strip">
+              @for (c of inProgressCourses; track c.id) {
+                <div class="continue-card" (click)="startLearning(c)">
+                  <div class="continue-thumb">
+                    @if (getThumbnailUrl(c)) {
+                      <img [src]="getThumbnailUrl(c)" [alt]="c.title" />
+                    } @else {
+                      <mat-icon>play_circle</mat-icon>
+                    }
+                  </div>
+                  <div class="continue-info">
+                    <strong>{{ c.title }}</strong>
+                    <span>{{ c.completedEpisodes }}/{{ c.episodeCount }} EPs · {{ c.progressPercent }}%</span>
+                    <mat-progress-bar mode="determinate" [value]="c.progressPercent"></mat-progress-bar>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
         @if (courses.length > 0) {
         <h3 class="section-title">
           {{ selectedCategory || (searchQuery ? 'Search Results' : 'Available Courses') }} ({{ totalElements }})
@@ -120,6 +147,9 @@
                 <div class="card-meta">
                   <span><mat-icon>folder</mat-icon> {{ course.topicCount }} Topics</span>
                   <span><mat-icon>play_circle</mat-icon> {{ course.episodeCount }} EPs</span>
+                  @if (course.reviewCount > 0) {
+                    <span class="rating-meta"><mat-icon>star</mat-icon> {{ course.averageRating }} ({{ course.reviewCount }})</span>
+                  }
                 </div>
 
                 @if (course.episodeCount > 0) {

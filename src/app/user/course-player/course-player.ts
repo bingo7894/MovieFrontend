@@ -1,10 +1,14 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { CourseService } from '../../shared/services/course-service';
 import { MediaService } from '../../shared/services/media-service';
 import { ProgressService } from '../../shared/services/progress-service';
 import { QuizService } from '../../shared/services/quiz-service';
+import { DiscussionService } from '../../shared/services/discussion-service';
+import { CertificateService } from '../../shared/services/certificate-service';
+import { DialogService } from '../../shared/services/dialog-service';
+import { AuthService } from '../../shared/services/auth-service';
 import { UtilityService } from '../../shared/services/utility-service';
 import { NotificationService } from '../../shared/services/notification-service';
 import { ErrorHandlerService } from '../../shared/services/error-handler-service';
@@ -30,10 +34,26 @@ export class CoursePlayer implements OnInit, OnDestroy {
   private lastSavedSecond = 0;
   private resumedInitialSeek = false;
 
+  // Player UX enhancements
+  playbackSpeed = 1;
+  playbackRates = [0.75, 1, 1.25, 1.5, 2];
+  autoPlayNext = true;
+  upNextCountdown: number | null = null;
+  private upNextTimer: any = null;
+  claimingCert = false;
+
   // Materials / Notes
   notes: any[] = [];
   newNoteText = '';
   savingNote = false;
+
+  // Q&A Discussions
+  discussions: any[] = [];
+  newQuestionTitle = '';
+  newQuestionContent = '';
+  attachQuestionTimestamp = true;
+  postingDiscussion = false;
+  replyDrafts: Record<number, string> = {};
 
   // Quiz runner state
   activeQuiz: any = null;
@@ -42,6 +62,8 @@ export class CoursePlayer implements OnInit, OnDestroy {
   selectedAnswers: Record<number, number[]> = {};
   quizResult: any = null;
   quizAttempts: any[] = [];
+  quizSecondsLeft = 0;
+  private quizTimer: any = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -50,6 +72,10 @@ export class CoursePlayer implements OnInit, OnDestroy {
     private mediaService: MediaService,
     private progressService: ProgressService,
     private quizService: QuizService,
+    private discussionService: DiscussionService,
+    private certificateService: CertificateService,
+    private dialogService: DialogService,
+    public authService: AuthService,
     public utilityService: UtilityService,
     private notification: NotificationService,
     private errorHandler: ErrorHandlerService,
@@ -61,7 +87,39 @@ export class CoursePlayer implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.cancelUpNext();
+    this.clearQuizTimer();
     this.flushVideoProgress(false);
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable)
+    ) {
+      return;
+    }
+    const video = this.videoRef?.nativeElement;
+    if (!video || !this.videoUrl) return;
+
+    if (event.code === 'Space') {
+      event.preventDefault();
+      if (video.paused) video.play().catch(() => {});
+      else video.pause();
+    } else if (event.code === 'ArrowLeft') {
+      event.preventDefault();
+      video.currentTime = Math.max(0, video.currentTime - 5);
+    } else if (event.code === 'ArrowRight') {
+      event.preventDefault();
+      video.currentTime = Math.min(video.duration || Infinity, video.currentTime + 5);
+    } else if (event.key === 'm' || event.key === 'M') {
+      video.muted = !video.muted;
+    }
   }
 
   loadCourse(preserveEpisodeId?: number): void {
@@ -97,6 +155,8 @@ export class CoursePlayer implements OnInit, OnDestroy {
   }
 
   selectEpisode(topic: any, episode: any, savePrevious: boolean = true): void {
+    this.cancelUpNext();
+    this.clearQuizTimer();
     if (savePrevious && this.currentEpisode && this.currentEpisode.id !== episode.id) {
       this.flushVideoProgress(false);
     }
@@ -116,6 +176,7 @@ export class CoursePlayer implements OnInit, OnDestroy {
     this.quizAttempts = [];
 
     this.loadNotes(episode.id);
+    this.loadDiscussions(episode.id);
 
     this.router.navigate([], {
       relativeTo: this.route,
@@ -127,11 +188,20 @@ export class CoursePlayer implements OnInit, OnDestroy {
 
   onVideoLoadedMetadata(): void {
     const el = this.videoRef?.nativeElement;
-    if (!el || this.resumedInitialSeek || !this.currentEpisode) return;
+    if (!el) return;
+    el.playbackRate = this.playbackSpeed;
+    if (this.resumedInitialSeek || !this.currentEpisode) return;
     this.resumedInitialSeek = true;
     const saved = this.currentEpisode.watchedSeconds || 0;
     if (saved > 2 && el.duration && saved < el.duration - 3) {
       el.currentTime = saved;
+    }
+  }
+
+  setPlaybackSpeed(rate: number): void {
+    this.playbackSpeed = rate;
+    if (this.videoRef?.nativeElement) {
+      this.videoRef.nativeElement.playbackRate = rate;
     }
   }
 
@@ -149,6 +219,40 @@ export class CoursePlayer implements OnInit, OnDestroy {
 
   onVideoEnded(): void {
     this.flushVideoProgress(true);
+    if (this.autoPlayNext && this.currentEpisodeIndex < this.flatEpisodes.length - 1) {
+      this.startUpNextCountdown();
+    }
+  }
+
+  private startUpNextCountdown(): void {
+    this.cancelUpNext();
+    this.upNextCountdown = 5;
+    this.upNextTimer = setInterval(() => {
+      if (this.upNextCountdown === null) return;
+      if (this.upNextCountdown <= 1) {
+        this.cancelUpNext();
+        this.goNextEpisode();
+      } else {
+        this.upNextCountdown--;
+      }
+    }, 1000);
+  }
+
+  cancelUpNext(): void {
+    if (this.upNextTimer) {
+      clearInterval(this.upNextTimer);
+      this.upNextTimer = null;
+    }
+    this.upNextCountdown = null;
+  }
+
+  get nextEpisodeTitle(): string {
+    const idx = this.currentEpisodeIndex;
+    if (idx >= 0 && idx < this.flatEpisodes.length - 1) {
+      const next = this.flatEpisodes[idx + 1].episode;
+      return `EP ${next.episodeNumber}: ${next.title}`;
+    }
+    return '';
   }
 
   flushVideoProgress(markComplete: boolean): void {
@@ -209,6 +313,28 @@ export class CoursePlayer implements OnInit, OnDestroy {
     this.course.completedEpisodes = completed;
     this.course.episodeCount = total;
     this.course.progressPercent = total > 0 ? Math.round((completed * 100) / total) : 0;
+    const allQuizzesPassed = (this.course.topics || [])
+      .flatMap((t: any) => t.episodes || [])
+      .flatMap((e: any) => e.quizzes || [])
+      .every((q: any) => q.passed === true);
+    this.course.allQuizzesPassed = allQuizzesPassed;
+    this.course.certificateEligible =
+      total > 0 && this.course.progressPercent >= 100 && allQuizzesPassed;
+  }
+
+  claimCertificate(): void {
+    if (!this.course || this.claimingCert) return;
+    this.claimingCert = true;
+    this.certificateService
+      .issueOrGetCertificate(this.course.id)
+      .pipe(finalize(() => (this.claimingCert = false)))
+      .subscribe({
+        next: (cert: any) => {
+          this.course.certificateCode = cert.certificateCode;
+          this.dialogService.openCertificateDialog(cert);
+        },
+        error: (err) => this.errorHandler.handle(err, 'Unable to claim certificate'),
+      });
   }
 
   get currentEpisodeIndex(): number {
@@ -256,6 +382,7 @@ export class CoursePlayer implements OnInit, OnDestroy {
 
   // ===== Quiz Runner =====
   startQuiz(quizSummary: any): void {
+    this.clearQuizTimer();
     this.quizLoading = true;
     this.quizResult = null;
     this.selectedAnswers = {};
@@ -267,11 +394,36 @@ export class CoursePlayer implements OnInit, OnDestroy {
         next: (quiz: any) => {
           this.activeQuiz = quiz;
           this.loadQuizAttempts(quiz.id);
+          if (quiz.timeLimitMinutes && quiz.timeLimitMinutes > 0) {
+            this.startQuizTimer(quiz.timeLimitMinutes * 60);
+          }
         },
         error: (err) => {
           this.errorHandler.handle(err, 'Failed to load quiz');
         },
       });
+  }
+
+  private startQuizTimer(seconds: number): void {
+    this.clearQuizTimer();
+    this.quizSecondsLeft = seconds;
+    this.quizTimer = setInterval(() => {
+      if (this.quizSecondsLeft <= 1) {
+        this.clearQuizTimer();
+        this.notification.info('Time is up! Auto-submitting your quiz.');
+        this.submitQuiz();
+      } else {
+        this.quizSecondsLeft--;
+      }
+    }, 1000);
+  }
+
+  private clearQuizTimer(): void {
+    if (this.quizTimer) {
+      clearInterval(this.quizTimer);
+      this.quizTimer = null;
+    }
+    this.quizSecondsLeft = 0;
   }
 
   loadQuizAttempts(quizId: number): void {
@@ -302,6 +454,7 @@ export class CoursePlayer implements OnInit, OnDestroy {
 
   submitQuiz(): void {
     if (!this.activeQuiz || this.submittingQuiz) return;
+    this.clearQuizTimer();
     this.submittingQuiz = true;
     this.quizService
       .submitQuiz(this.activeQuiz.id, this.selectedAnswers)
@@ -317,6 +470,7 @@ export class CoursePlayer implements OnInit, OnDestroy {
           if (summary) {
             summary.bestScore = Math.max(summary.bestScore || 0, result.scorePercent);
             summary.passed = summary.passed || result.passed;
+            this.recalculateCourseProgress();
           }
         },
         error: (err) => {
@@ -375,7 +529,82 @@ export class CoursePlayer implements OnInit, OnDestroy {
     });
   }
 
+  // ===== Q&A Discussions =====
+  loadDiscussions(episodeId: number): void {
+    this.discussionService.getEpisodeDiscussions(episodeId).subscribe({
+      next: (list: any) => {
+        this.discussions = list || [];
+      },
+    });
+  }
+
+  postDiscussion(): void {
+    if (!this.currentEpisode || !this.newQuestionTitle.trim() || !this.newQuestionContent.trim() || this.postingDiscussion) {
+      return;
+    }
+    this.postingDiscussion = true;
+    const videoTimestamp = this.attachQuestionTimestamp ? this.currentVideoTime : 0;
+
+    this.discussionService
+      .createDiscussion(this.currentEpisode.id, {
+        title: this.newQuestionTitle.trim(),
+        content: this.newQuestionContent.trim(),
+        videoTimestamp,
+      })
+      .pipe(finalize(() => (this.postingDiscussion = false)))
+      .subscribe({
+        next: (created) => {
+          this.newQuestionTitle = '';
+          this.newQuestionContent = '';
+          this.discussions = [created, ...this.discussions];
+          this.notification.success('Question posted');
+        },
+        error: (err) => this.errorHandler.handle(err, 'Failed to post question'),
+      });
+  }
+
+  postReply(discussion: any): void {
+    const text = (this.replyDrafts[discussion.id] || '').trim();
+    if (!text) return;
+
+    this.discussionService.addReply(discussion.id, text).subscribe({
+      next: (updated: any) => {
+        this.replyDrafts[discussion.id] = '';
+        Object.assign(discussion, updated);
+        this.notification.success('Reply posted');
+      },
+      error: (err) => this.errorHandler.handle(err, 'Failed to post reply'),
+    });
+  }
+
+  toggleDiscussionResolved(discussion: any): void {
+    this.discussionService.toggleResolved(discussion.id).subscribe({
+      next: (updated) => Object.assign(discussion, updated),
+      error: (err) => this.errorHandler.handle(err, 'Failed to update discussion'),
+    });
+  }
+
+  toggleDiscussionPinned(discussion: any): void {
+    this.discussionService.togglePinned(discussion.id).subscribe({
+      next: (updated) => {
+        Object.assign(discussion, updated);
+        this.loadDiscussions(this.currentEpisode.id);
+      },
+      error: (err) => this.errorHandler.handle(err, 'Failed to update pin status'),
+    });
+  }
+
+  deleteDiscussion(discussionId: number): void {
+    this.discussionService.deleteDiscussion(discussionId).subscribe({
+      next: () => {
+        this.discussions = this.discussions.filter((d) => d.id !== discussionId);
+        this.notification.success('Discussion deleted');
+      },
+      error: (err) => this.errorHandler.handle(err, 'Failed to delete discussion'),
+    });
+  }
+
   backToCatalog(): void {
-    this.router.navigate(['/home']);
+    this.router.navigate(['/courses', this.courseId]);
   }
 }

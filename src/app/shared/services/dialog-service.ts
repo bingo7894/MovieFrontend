@@ -9,6 +9,7 @@ import { ManageCourse } from '../../admin/dialog/manage-course/manage-course';
 import { ManageTopic } from '../../admin/dialog/manage-topic/manage-topic';
 import { ManageEpisode } from '../../admin/dialog/manage-episode/manage-episode';
 import { QuizBuilder } from '../../admin/dialog/quiz-builder/quiz-builder';
+import { CertificateDialog } from '../components/certificate-dialog/certificate-dialog';
 
 @Injectable({
   providedIn: 'root',
@@ -76,6 +77,13 @@ export class DialogService {
     return this.dialog.open(QuizBuilder, {
       ...DIALOG_CONFIG.QUIZ_BUILDER,
       data: { episodeId, quizId },
+    });
+  }
+
+  openCertificateDialog(certificate: any): MatDialogRef<CertificateDialog> {
+    return this.dialog.open(CertificateDialog, {
+      ...DIALOG_CONFIG.CERTIFICATE,
+      data: { certificate },
     });
   }
 }

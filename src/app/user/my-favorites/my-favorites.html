@@ -17,6 +17,29 @@
       </mat-form-field>
     </div>
 
+    @if (certificates.length > 0) {
+      <section class="certs-section">
+        <div class="certs-header">
+          <h2><mat-icon>workspace_premium</mat-icon> My Certificates ({{ certificates.length }})</h2>
+          <a routerLink="/certificates/verify" mat-button>Verify a Code</a>
+        </div>
+        <div class="certs-grid">
+          @for (cert of certificates; track cert.id) {
+            <div class="cert-card">
+              <div>
+                <span class="cert-code">{{ cert.certificateCode }}</span>
+                <h3>{{ cert.courseTitle }}</h3>
+                <p>Issued {{ cert.issuedAt | date: 'mediumDate' }} · {{ cert.totalEpisodes }} EPs</p>
+              </div>
+              <button mat-raised-button color="primary" (click)="viewCertificate(cert)">
+                <mat-icon>print</mat-icon> View / PDF
+              </button>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
     @if (loading) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     }

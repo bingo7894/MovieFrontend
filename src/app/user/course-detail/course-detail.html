@@ -1,0 +1,183 @@
+<div class="course-detail-page">
+  <app-header [showRouterOutlet]="false"></app-header>
+
+  <div class="detail-wrap">
+    <button mat-stroked-button (click)="backToCatalog()" class="back-btn">
+      <mat-icon>arrow_back</mat-icon> Back to Courses
+    </button>
+
+    @if (loading) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+
+    @if (course && !loading) {
+      <section class="hero-card">
+        <div class="hero-thumb">
+          @if (getThumbnailUrl()) {
+            <img [src]="getThumbnailUrl()" [alt]="course.title" />
+          } @else {
+            <div class="thumb-placeholder"><mat-icon>school</mat-icon></div>
+          }
+        </div>
+
+        <div class="hero-info">
+          <div class="badges">
+            @if (course.category) {
+              <span class="chip accent">{{ course.category }}</span>
+            }
+            <span class="chip">{{ course.level }}</span>
+            @if (reviewsOverview.reviewCount > 0) {
+              <span class="chip rating">
+                <mat-icon>star</mat-icon>
+                {{ reviewsOverview.averageRating }} ({{ reviewsOverview.reviewCount }})
+              </span>
+            }
+            <span class="chip">{{ course.enrollmentCount }} Learners</span>
+          </div>
+
+          <h1>{{ course.title }}</h1>
+          <p class="description">{{ course.description || 'No description provided.' }}</p>
+
+          <div class="stats-inline">
+            <span><mat-icon>folder</mat-icon> {{ course.topicCount }} Topics</span>
+            <span><mat-icon>play_circle</mat-icon> {{ course.episodeCount }} EPs</span>
+            <span><mat-icon>schedule</mat-icon> {{ utilityService.formatDuration(course.totalDuration) }}</span>
+          </div>
+
+          @if (course.episodeCount > 0) {
+            <div class="progress-box">
+              <div class="progress-label">
+                <span>Your Progress</span>
+                <span>{{ course.completedEpisodes }}/{{ course.episodeCount }} ({{ course.progressPercent }}%)</span>
+              </div>
+              <mat-progress-bar mode="determinate" [value]="course.progressPercent"></mat-progress-bar>
+            </div>
+          }
+
+          <div class="hero-actions">
+            <button mat-raised-button color="primary" (click)="startLearning()" [disabled]="course.episodeCount === 0">
+              <mat-icon>play_arrow</mat-icon>
+              {{ course.completedEpisodes > 0 ? 'Continue Learning' : 'Start Learning' }}
+            </button>
+
+            <button mat-stroked-button (click)="toggleEnrollment()">
+              <mat-icon>{{ course.enrolled ? 'bookmark' : 'bookmark_border' }}</mat-icon>
+              {{ course.enrolled ? 'In My Learning' : 'Save Course' }}
+            </button>
+
+            @if (course.certificateEligible || course.certificateCode) {
+              <button mat-stroked-button color="primary" (click)="claimCertificate()" [disabled]="claimingCert">
+                <mat-icon>workspace_premium</mat-icon>
+                {{ course.certificateCode ? 'View Certificate' : 'Claim Certificate' }}
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+
+      <div class="content-grid">
+        <section class="syllabus-card">
+          <h2>Course Curriculum ({{ course.topicCount }} Topics · {{ course.episodeCount }} EPs)</h2>
+
+          @if (course.topics.length === 0) {
+            <p class="muted">No topics published yet.</p>
+          } @else {
+            <mat-accordion multi>
+              @for (topic of course.topics; track topic.id; let idx = $index) {
+                <mat-expansion-panel [expanded]="idx === 0">
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>{{ idx + 1 }}. {{ topic.title }}</mat-panel-title>
+                    <mat-panel-description>
+                      {{ topic.episodes.length }} EPs · {{ utilityService.formatDuration(topic.totalDuration) }}
+                    </mat-panel-description>
+                  </mat-expansion-panel-header>
+
+                  <div class="ep-list">
+                    @for (ep of topic.episodes; track ep.id) {
+                      <button class="ep-item" (click)="startLearning(ep.id)">
+                        <mat-icon [class.done]="ep.completed">
+                          {{ ep.completed ? 'check_circle' : 'play_circle_outline' }}
+                        </mat-icon>
+                        <div class="ep-text">
+                          <strong>EP {{ ep.episodeNumber }}: {{ ep.title }}</strong>
+                          <span>
+                            {{ utilityService.formatDuration(ep.duration) }}
+                            @if (ep.attachments.length) { · {{ ep.attachments.length }} files }
+                            @if (ep.quizzes.length) { · {{ ep.quizzes.length }} quiz }
+                          </span>
+                        </div>
+                        @if (ep.freePreview) {
+                          <span class="preview-pill">Free Preview</span>
+                        }
+                      </button>
+                    }
+                  </div>
+                </mat-expansion-panel>
+              }
+            </mat-accordion>
+          }
+        </section>
+
+        <section class="reviews-card">
+          <div class="reviews-head">
+            <h2>Student Reviews</h2>
+            @if (reviewsOverview.reviewCount > 0) {
+              <span class="avg-pill">
+                <mat-icon>star</mat-icon> {{ reviewsOverview.averageRating }} / 5 ({{ reviewsOverview.reviewCount }})
+              </span>
+            }
+          </div>
+
+          <div class="review-form">
+            <label>Your Rating</label>
+            <div class="star-picker">
+              @for (star of [1, 2, 3, 4, 5]; track star) {
+                <button mat-icon-button type="button" (click)="myRating = star">
+                  <mat-icon [class.filled]="star <= myRating">{{ star <= myRating ? 'star' : 'star_border' }}</mat-icon>
+                </button>
+              }
+            </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Write a review (optional)</mat-label>
+              <textarea matInput rows="2" [(ngModel)]="myComment" placeholder="Share your experience with this course..."></textarea>
+            </mat-form-field>
+            <button mat-raised-button color="primary" (click)="submitReview()" [disabled]="savingReview">
+              {{ reviewsOverview.userReview ? 'Update Review' : 'Post Review' }}
+            </button>
+          </div>
+
+          <div class="reviews-list">
+            @if (reviewsOverview.reviews.length === 0) {
+              <p class="muted">No reviews yet. Be the first to rate this course!</p>
+            }
+            @for (r of reviewsOverview.reviews; track r.id) {
+              <div class="review-item">
+                <div class="review-top">
+                  <div>
+                    <strong>{{ r.authorName }}</strong>
+                    <span class="stars-row">
+                      @for (s of [1, 2, 3, 4, 5]; track s) {
+                        <mat-icon [class.filled]="s <= r.rating">{{ s <= r.rating ? 'star' : 'star_border' }}</mat-icon>
+                      }
+                    </span>
+                  </div>
+                  <div class="review-meta">
+                    <span>{{ r.updatedAt | date: 'mediumDate' }}</span>
+                    @if (canDeleteReview(r)) {
+                      <button mat-icon-button color="warn" (click)="deleteReview(r.id)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    }
+                  </div>
+                </div>
+                @if (r.comment) {
+                  <p>{{ r.comment }}</p>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+    }
+  </div>
+</div>

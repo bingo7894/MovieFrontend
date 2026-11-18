@@ -11,6 +11,8 @@ import { ForgotPassword } from './forgot-password/forgot-password';
 import { ResetPassword } from './reset-password/reset-password';
 import { MyFavorites } from './user/my-favorites/my-favorites';
 import { CoursePlayer } from './user/course-player/course-player';
+import { CourseDetail } from './user/course-detail/course-detail';
+import { CertificateVerify } from './certificate-verify/certificate-verify';
 
 const routes: Routes = [
   { path: '', component: Landing },
@@ -19,9 +21,12 @@ const routes: Routes = [
   { path: 'verify-email', component: VerfyEmail },
   { path: 'forgot-password', component: ForgotPassword },
   { path: 'reset-password', component: ResetPassword },
+  { path: 'certificates/verify', component: CertificateVerify },
+  { path: 'certificates/verify/:code', component: CertificateVerify },
   { path: 'home', component: Home, canActivate: [authGuard] },
   { path: 'my-learning', component: MyFavorites, canActivate: [authGuard] },
   { path: 'my-favorites', redirectTo: 'my-learning', pathMatch: 'full' },
+  { path: 'courses/:courseId', component: CourseDetail, canActivate: [authGuard] },
   { path: 'courses/:courseId/learn', component: CoursePlayer, canActivate: [authGuard] },
   {
     path: 'admin',

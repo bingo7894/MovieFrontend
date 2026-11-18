@@ -1,0 +1,49 @@
+<div class="verify-page">
+  <div class="verify-card">
+    <div class="brand-row">
+      <mat-icon>school</mat-icon>
+      <span>PulseLearn LMS · Certificate Verification</span>
+    </div>
+
+    <h1>Verify Completion Certificate</h1>
+    <p>Enter a certificate ID (e.g. PL-1A2B3C4D) to verify its authenticity.</p>
+
+    <div class="search-row">
+      <mat-form-field appearance="outline" class="code-field">
+        <mat-label>Certificate Code</mat-label>
+        <input matInput [(ngModel)]="codeInput" placeholder="PL-XXXXXXXX" (keyup.enter)="verify()" />
+      </mat-form-field>
+      <button mat-raised-button color="primary" (click)="verify()" [disabled]="loading || !codeInput.trim()">
+        <mat-icon>verified</mat-icon> Verify
+      </button>
+    </div>
+
+    @if (loading) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+
+    @if (certificate) {
+      <div class="result valid">
+        <div class="badge-valid"><mat-icon>check_circle</mat-icon> Valid Certificate</div>
+        <h2>{{ certificate.recipientName }}</h2>
+        <p class="course-name">{{ certificate.courseTitle }}</p>
+        <div class="meta">
+          <span>Code: <strong>{{ certificate.certificateCode }}</strong></span>
+          <span>Issued: {{ certificate.issuedAt | date: 'mediumDate' }}</span>
+          <span>{{ certificate.totalEpisodes }} Episodes · {{ utilityService.formatDuration(certificate.totalDuration) }}</span>
+        </div>
+      </div>
+    }
+
+    @if (notFound) {
+      <div class="result invalid">
+        <mat-icon>cancel</mat-icon>
+        <p>No certificate found matching code "{{ codeInput }}".</p>
+      </div>
+    }
+
+    <div class="back-row">
+      <a routerLink="/home" mat-button>Go to Course Catalog</a>
+    </div>
+  </div>
+</div>

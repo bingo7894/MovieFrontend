@@ -4,6 +4,7 @@ import { Header } from '../shared/components/header/header';
 import { UserList } from './user-list/user-list';
 import { CourseList } from './course-list/course-list';
 import { CourseCurriculum } from './course-curriculum/course-curriculum';
+import { Analytics } from './analytics/analytics';
 
 const routes: Routes = [
   {
@@ -13,6 +14,7 @@ const routes: Routes = [
       { path: '', redirectTo: 'courses', pathMatch: 'full' },
       { path: 'courses', component: CourseList },
       { path: 'courses/:id/curriculum', component: CourseCurriculum },
+      { path: 'analytics', component: Analytics },
       { path: 'users', component: UserList },
     ],
   },

@@ -1,0 +1,136 @@
+<div class="analytics-container">
+  <div class="header-row">
+    <div>
+      <h1>Learner Analytics & Progress</h1>
+      <p>Track course enrollments, completion rates, quiz scores, and issued certificates</p>
+    </div>
+    <button mat-icon-button (click)="loadOverview()" [disabled]="loading" matTooltip="Refresh">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (overview) {
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <mat-icon>group</mat-icon>
+        <div><strong>{{ overview.totalLearners }}</strong><span>Registered Learners</span></div>
+      </div>
+      <div class="kpi-card">
+        <mat-icon>bookmarks</mat-icon>
+        <div><strong>{{ overview.totalEnrollments }}</strong><span>Course Enrollments</span></div>
+      </div>
+      <div class="kpi-card">
+        <mat-icon>workspace_premium</mat-icon>
+        <div><strong>{{ overview.totalCertificatesIssued }}</strong><span>Certificates Issued</span></div>
+      </div>
+      <div class="kpi-card">
+        <mat-icon>quiz</mat-icon>
+        <div><strong>{{ overview.totalQuizAttempts }}</strong><span>Quiz Submissions</span></div>
+      </div>
+      <div class="kpi-card">
+        <mat-icon>verified</mat-icon>
+        <div><strong>{{ overview.averageQuizPassRate }}%</strong><span>Quiz Pass Rate</span></div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h2>Courses Breakdown</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Course</th>
+              <th>EPs</th>
+              <th>Active / Enrolled</th>
+              <th>Completed</th>
+              <th>Avg Progress</th>
+              <th>Avg Quiz</th>
+              <th>Certificates</th>
+              <th>Rating</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of overview.courses; track c.courseId) {
+              <tr [class.selected]="selectedCourse?.courseId === c.courseId" (click)="selectCourse(c)">
+                <td>
+                  <strong>{{ c.title }}</strong>
+                  <small>{{ c.category || 'General' }} · {{ c.published ? 'Published' : 'Draft' }}</small>
+                </td>
+                <td>{{ c.episodeCount }}</td>
+                <td>{{ c.activeLearnerCount }} / {{ c.enrolledCount }}</td>
+                <td>{{ c.completedLearnerCount }}</td>
+                <td>{{ c.averageProgressPercent }}%</td>
+                <td>{{ c.quizAttemptCount > 0 ? c.averageQuizScore + '%' : '—' }}</td>
+                <td>{{ c.certificatesIssued }}</td>
+                <td>{{ c.reviewCount > 0 ? c.averageRating + ' (' + c.reviewCount + ')' : '—' }}</td>
+                <td class="actions-cell">
+                  <button mat-stroked-button (click)="exportCsv(c, $event)">
+                    <mat-icon>download</mat-icon> CSV
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    @if (selectedCourse) {
+      <div class="section-card">
+        <div class="subhead">
+          <h2>Learners in "{{ selectedCourse.title }}" ({{ learners.length }})</h2>
+          <button mat-raised-button color="primary" (click)="exportCsv(selectedCourse)">
+            <mat-icon>download</mat-icon> Export CSV
+          </button>
+        </div>
+
+        @if (learnersLoading) {
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        } @else if (learners.length === 0) {
+          <p class="muted">No learner activity in this course yet.</p>
+        } @else {
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Learner</th>
+                  <th>Completed EPs</th>
+                  <th>Progress</th>
+                  <th>Watch Time</th>
+                  <th>Quizzes Passed</th>
+                  <th>Avg Score</th>
+                  <th>Certificate</th>
+                  <th>Last Active</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (l of learners; track l.userId) {
+                  <tr>
+                    <td>
+                      <strong>{{ l.fullName }}</strong>
+                      <small>{{ l.email }}</small>
+                    </td>
+                    <td>{{ l.completedEpisodes }} / {{ l.totalEpisodes }}</td>
+                    <td>
+                      <span class="pct-pill" [class.done]="l.progressPercent >= 100">{{ l.progressPercent }}%</span>
+                    </td>
+                    <td>{{ utilityService.formatDuration(l.totalWatchedSeconds) }}</td>
+                    <td>{{ l.quizzesPassedCount }} / {{ l.totalPublishedQuizzes }}</td>
+                    <td>{{ l.averageQuizScore !== null ? l.averageQuizScore + '%' : '—' }}</td>
+                    <td>{{ l.certificateCode || '—' }}</td>
+                    <td>{{ l.lastActivityAt ? (l.lastActivityAt | date: 'short') : '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

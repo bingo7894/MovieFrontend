@@ -21,6 +21,12 @@
         <mat-label>Passing Score (%)</mat-label>
         <input matInput type="number" min="0" max="100" formControlName="passingScore" required />
       </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Time Limit (min)</mat-label>
+        <input matInput type="number" min="0" formControlName="timeLimitMinutes" />
+        <mat-hint>0 = unlimited</mat-hint>
+      </mat-form-field>
     </div>
 
     <div class="desc-row">
@@ -28,6 +34,11 @@
         <mat-label>Instructions / Description</mat-label>
         <input matInput formControlName="description" placeholder="Optional instructions for learners..." />
       </mat-form-field>
+
+      <div class="pub-toggle">
+        <span>Shuffle Qs</span>
+        <mat-slide-toggle formControlName="shuffleQuestions" color="primary"></mat-slide-toggle>
+      </div>
 
       <div class="pub-toggle">
         <span>Published</span>

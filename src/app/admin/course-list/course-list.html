@@ -101,6 +101,10 @@
               <span><mat-icon>folder</mat-icon> {{ c.topicCount }} Topics</span>
               <span><mat-icon>play_circle</mat-icon> {{ c.episodeCount }} EPs</span>
               <span><mat-icon>schedule</mat-icon> {{ utilityService.formatDuration(c.totalDuration) }}</span>
+              <span><mat-icon>group</mat-icon> {{ c.enrollmentCount || 0 }}</span>
+              @if (c.reviewCount > 0) {
+                <span><mat-icon>star</mat-icon> {{ c.averageRating }}</span>
+              }
             </div>
 
             <div class="card-footer">

@@ -22,6 +22,10 @@ export class CourseService {
     return this.http.get(this.apiUrl + '/featured');
   }
 
+  getInProgressCourses() {
+    return this.http.get(this.apiUrl + '/in-progress');
+  }
+
   getCourseDetail(courseId: number | string) {
     return this.http.get(`${this.apiUrl}/${courseId}`);
   }

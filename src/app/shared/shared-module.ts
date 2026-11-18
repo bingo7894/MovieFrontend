@@ -31,6 +31,7 @@ import { ConfirmDialog } from './components/confirm-dialog/confirm-dialog';
 import { Header } from './components/header/header';
 import { ChangePasswordDialog } from './components/change-password-dialog/change-password-dialog';
 import { VideoPlayer } from './components/video-player/video-player';
+import { CertificateDialog } from './components/certificate-dialog/certificate-dialog';
 
 const MATERIAL_MODULES = [
   MatIconModule,
@@ -60,12 +61,13 @@ const MATERIAL_MODULES = [
 ];
 
 @NgModule({
-  declarations: [ConfirmDialog, Header, ChangePasswordDialog, VideoPlayer],
+  declarations: [ConfirmDialog, Header, ChangePasswordDialog, VideoPlayer, CertificateDialog],
   imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, ...MATERIAL_MODULES],
   exports: [
     ConfirmDialog,
     Header,
     ChangePasswordDialog,
+    CertificateDialog,
     CommonModule,
     RouterModule,
     FormsModule,

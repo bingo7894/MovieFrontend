@@ -1,0 +1,61 @@
+<div class="cert-modal">
+  <div class="cert-toolbar no-print">
+    <h2>Course Completion Certificate</h2>
+    <div class="toolbar-actions">
+      <button mat-stroked-button (click)="copyCode()">
+        <mat-icon>content_copy</mat-icon> Copy Code
+      </button>
+      <button mat-raised-button color="primary" (click)="printCertificate()">
+        <mat-icon>print</mat-icon> Print / Save PDF
+      </button>
+      <button mat-icon-button (click)="close()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (certificate) {
+    <div class="certificate-sheet" id="printable-certificate">
+      <div class="cert-border">
+        <div class="cert-top">
+          <div class="cert-brand">
+            <mat-icon>school</mat-icon>
+            <span>PulseLearn LMS</span>
+          </div>
+          <span class="cert-tag">CERTIFICATE OF COMPLETION</span>
+        </div>
+
+        <p class="cert-presents">THIS IS TO CERTIFY THAT</p>
+        <h1 class="cert-recipient">{{ certificate.recipientName }}</h1>
+        <p class="cert-desc">has successfully completed all lessons and exercises for the course</p>
+        <h2 class="cert-course">{{ certificate.courseTitle }}</h2>
+
+        <div class="cert-stats">
+          @if (certificate.category) {
+            <span>{{ certificate.category }}</span>
+          }
+          @if (certificate.level) {
+            <span>{{ certificate.level }}</span>
+          }
+          <span>{{ certificate.totalEpisodes }} Episodes</span>
+          <span>{{ utilityService.formatDuration(certificate.totalDuration) }} Total</span>
+        </div>
+
+        <div class="cert-footer">
+          <div>
+            <small>ISSUED DATE</small>
+            <strong>{{ certificate.issuedAt | date: 'mediumDate' }}</strong>
+          </div>
+          <div class="seal-box">
+            <mat-icon>verified</mat-icon>
+            <span>VERIFIED</span>
+          </div>
+          <div class="right-align">
+            <small>CERTIFICATE ID</small>
+            <strong>{{ certificate.certificateCode }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

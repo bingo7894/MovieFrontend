@@ -66,6 +66,68 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.banner-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.continue-section {
+  margin-bottom: 22px;
+}
+.continue-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  gap: 12px;
+}
+.continue-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.continue-card:hover {
+  border-color: var(--accent);
+}
+.continue-thumb {
+  width: 72px;
+  height: 52px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #101010;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.continue-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.continue-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.continue-info strong {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.continue-info span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.rating-meta {
+  color: #fbbf24 !important;
+}
 .slider-nav {
   position: absolute;
   top: 50%;

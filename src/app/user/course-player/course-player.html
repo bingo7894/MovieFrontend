@@ -9,7 +9,7 @@
     <div class="course-topbar">
       <div class="topbar-left">
         <button mat-button (click)="backToCatalog()">
-          <mat-icon>arrow_back</mat-icon> Courses
+          <mat-icon>arrow_back</mat-icon> Overview
         </button>
         <div class="course-heading">
           <h1>{{ course.title }}</h1>
@@ -21,6 +21,12 @@
         <div class="progress-mini">
           <mat-progress-bar mode="determinate" [value]="course.progressPercent"></mat-progress-bar>
         </div>
+        @if (course.certificateEligible || course.certificateCode) {
+          <button mat-raised-button color="primary" (click)="claimCertificate()" [disabled]="claimingCert">
+            <mat-icon>workspace_premium</mat-icon>
+            {{ course.certificateCode ? 'Certificate' : 'Claim Certificate' }}
+          </button>
+        }
         <button mat-stroked-button color="primary" (click)="toggleEnrollment()">
           <mat-icon>{{ course.enrolled ? 'bookmark' : 'bookmark_border' }}</mat-icon>
           {{ course.enrolled ? 'In My Learning' : 'Save Course' }}
@@ -50,6 +56,41 @@
                 (pause)="flushVideoProgress(false)"
                 (ended)="onVideoEnded()"
               ></video>
+
+              @if (upNextCountdown !== null) {
+                <div class="up-next-overlay">
+                  <div class="up-next-card">
+                    <small>UP NEXT IN {{ upNextCountdown }}s</small>
+                    <strong>{{ nextEpisodeTitle }}</strong>
+                    <div class="up-next-btns">
+                      <button mat-raised-button color="primary" (click)="cancelUpNext(); goNextEpisode()">
+                        <mat-icon>play_arrow</mat-icon> Play Now
+                      </button>
+                      <button mat-stroked-button (click)="cancelUpNext()">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="player-controls-bar">
+              <div class="speed-group">
+                <span>Speed:</span>
+                @for (rate of playbackRates; track rate) {
+                  <button
+                    type="button"
+                    class="speed-pill"
+                    [class.active]="playbackSpeed === rate"
+                    (click)="setPlaybackSpeed(rate)"
+                  >
+                    {{ rate }}x
+                  </button>
+                }
+              </div>
+
+              <div class="shortcut-hint">Space: Play/Pause · ←/→: ±5s · M: Mute</div>
+
+              <mat-slide-toggle [(ngModel)]="autoPlayNext" color="primary">Auto-Next EP</mat-slide-toggle>
             </div>
           } @else {
             <div class="no-video-banner">
@@ -160,9 +201,16 @@
                   @if (activeQuiz && !quizLoading) {
                     <div class="quiz-runner">
                       <div class="quiz-runner-header">
-                        <h3>{{ activeQuiz.title }}</h3>
-                        @if (activeQuiz.description) {
-                          <p>{{ activeQuiz.description }}</p>
+                        <div>
+                          <h3>{{ activeQuiz.title }}</h3>
+                          @if (activeQuiz.description) {
+                            <p>{{ activeQuiz.description }}</p>
+                          }
+                        </div>
+                        @if (quizSecondsLeft > 0 && !quizResult) {
+                          <span class="quiz-timer" [class.urgent]="quizSecondsLeft <= 60">
+                            <mat-icon>timer</mat-icon> {{ utilityService.formatDuration(quizSecondsLeft) }}
+                          </span>
                         }
                       </div>
 
@@ -281,6 +329,117 @@
                         <button mat-icon-button color="warn" (click)="deleteNote(n.id)">
                           <mat-icon>delete</mat-icon>
                         </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </mat-tab>
+
+            <mat-tab [label]="'Q&A (' + discussions.length + ')'">
+              <div class="tab-panel">
+                <div class="qa-composer">
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Question Title</mat-label>
+                    <input matInput [(ngModel)]="newQuestionTitle" placeholder="Summarize your question..." />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Details</mat-label>
+                    <textarea matInput rows="2" [(ngModel)]="newQuestionContent" placeholder="Describe where you got stuck..."></textarea>
+                  </mat-form-field>
+                  <div class="qa-compose-actions">
+                    <mat-checkbox [(ngModel)]="attachQuestionTimestamp" color="primary">
+                      Tag video time ({{ utilityService.formatDuration(currentVideoTime) }})
+                    </mat-checkbox>
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      (click)="postDiscussion()"
+                      [disabled]="postingDiscussion || !newQuestionTitle.trim() || !newQuestionContent.trim()"
+                    >
+                      <mat-icon>forum</mat-icon> Ask Question
+                    </button>
+                  </div>
+                </div>
+
+                @if (discussions.length === 0) {
+                  <p class="muted">No questions on this episode yet. Start the discussion!</p>
+                } @else {
+                  <div class="qa-list">
+                    @for (d of discussions; track d.id) {
+                      <div class="qa-card" [class.pinned]="d.pinned">
+                        <div class="qa-head">
+                          <div class="qa-badges">
+                            @if (d.pinned) {
+                              <span class="qa-tag pin"><mat-icon>push_pin</mat-icon> Pinned</span>
+                            }
+                            @if (d.resolved) {
+                              <span class="qa-tag resolved"><mat-icon>check_circle</mat-icon> Resolved</span>
+                            }
+                            @if (d.videoTimestamp > 0 && videoUrl) {
+                              <button mat-stroked-button class="time-chip" (click)="seekToNote(d.videoTimestamp)">
+                                <mat-icon>play_arrow</mat-icon> {{ utilityService.formatDuration(d.videoTimestamp) }}
+                              </button>
+                            }
+                          </div>
+
+                          <div class="qa-actions">
+                            @if (d.ownDiscussion || authService.isAdmin()) {
+                              <button mat-button (click)="toggleDiscussionResolved(d)">
+                                {{ d.resolved ? 'Reopen' : 'Mark Resolved' }}
+                              </button>
+                            }
+                            @if (authService.isAdmin()) {
+                              <button mat-icon-button (click)="toggleDiscussionPinned(d)" matTooltip="Pin/Unpin">
+                                <mat-icon>{{ d.pinned ? 'keep_off' : 'push_pin' }}</mat-icon>
+                              </button>
+                            }
+                            @if (d.ownDiscussion || authService.isAdmin()) {
+                              <button mat-icon-button color="warn" (click)="deleteDiscussion(d.id)">
+                                <mat-icon>delete</mat-icon>
+                              </button>
+                            }
+                          </div>
+                        </div>
+
+                        <h4>{{ d.title }}</h4>
+                        <p class="qa-body">{{ d.content }}</p>
+                        <div class="qa-author">
+                          Asked by <strong>{{ d.authorName }}</strong>
+                          @if (d.authorIsAdmin) {
+                            <span class="instructor-badge">Instructor</span>
+                          }
+                          · {{ d.createdAt | date: 'short' }}
+                        </div>
+
+                        @if (d.replies.length > 0) {
+                          <div class="replies-list">
+                            @for (r of d.replies; track r.id) {
+                              <div class="reply-item" [class.instructor]="r.instructorReply">
+                                <div class="reply-head">
+                                  <strong>{{ r.authorName }}</strong>
+                                  @if (r.instructorReply) {
+                                    <span class="instructor-badge">Instructor</span>
+                                  }
+                                  <span>{{ r.createdAt | date: 'short' }}</span>
+                                </div>
+                                <p>{{ r.content }}</p>
+                              </div>
+                            }
+                          </div>
+                        }
+
+                        <div class="reply-composer">
+                          <input
+                            type="text"
+                            placeholder="Write a helpful reply..."
+                            [(ngModel)]="replyDrafts[d.id]"
+                            (keyup.enter)="postReply(d)"
+                          />
+                          <button mat-stroked-button color="primary" (click)="postReply(d)" [disabled]="!(replyDrafts[d.id] || '').trim()">
+                            Reply
+                          </button>
+                        </div>
                       </div>
                     }
                   </div>

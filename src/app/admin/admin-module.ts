@@ -11,6 +11,7 @@ import { ManageCourse } from './dialog/manage-course/manage-course';
 import { ManageTopic } from './dialog/manage-topic/manage-topic';
 import { ManageEpisode } from './dialog/manage-episode/manage-episode';
 import { QuizBuilder } from './dialog/quiz-builder/quiz-builder';
+import { Analytics } from './analytics/analytics';
 
 @NgModule({
   declarations: [
@@ -22,6 +23,7 @@ import { QuizBuilder } from './dialog/quiz-builder/quiz-builder';
     ManageTopic,
     ManageEpisode,
     QuizBuilder,
+    Analytics,
   ],
   imports: [CommonModule, AdminRoutingModule, SharedModule],
 })

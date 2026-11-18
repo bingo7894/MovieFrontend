@@ -27,6 +27,7 @@ export class Home implements OnInit, OnDestroy {
   categories = COURSE_CATEGORIES;
 
   featuredCourses: any[] = [];
+  inProgressCourses: any[] = [];
   currentSlideIndex = 0;
   featuredLoading = true;
 
@@ -53,6 +54,7 @@ export class Home implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadFeaturedCourses();
+    this.loadInProgressCourses();
     this.loadCourses();
     this.searchSub = this.searchSubject.pipe(debounceTime(350), distinctUntilChanged()).subscribe(() => {
       this.currentPage = 0;
@@ -80,6 +82,14 @@ export class Home implements OnInit, OnDestroy {
           }
         },
       });
+  }
+
+  loadInProgressCourses(): void {
+    this.courseService.getInProgressCourses().subscribe({
+      next: (courses: any) => {
+        this.inProgressCourses = courses || [];
+      },
+    });
   }
 
   nextSlide(): void {
@@ -179,6 +189,10 @@ export class Home implements OnInit, OnDestroy {
   }
 
   openCourse(course: any): void {
+    this.router.navigate(['/courses', course.id]);
+  }
+
+  startLearning(course: any): void {
     this.router.navigate(['/courses', course.id, 'learn']);
   }
 

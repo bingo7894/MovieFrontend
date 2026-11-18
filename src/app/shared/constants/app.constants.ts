@@ -70,4 +70,12 @@ export const DIALOG_CONFIG = {
     hasBackdrop: true,
     disableClose: false,
   },
+  CERTIFICATE: {
+    width: '780px',
+    maxWidth: '95vw',
+    maxHeight: '92vh',
+    panelClass: 'video-form-dialog',
+    hasBackdrop: true,
+    disableClose: false,
+  },
 };

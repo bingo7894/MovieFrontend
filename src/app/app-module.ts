@@ -22,6 +22,8 @@ import { ResetPassword } from './reset-password/reset-password';
 import { SharedModule } from './shared/shared-module';
 import { MyFavorites } from './user/my-favorites/my-favorites';
 import { CoursePlayer } from './user/course-player/course-player';
+import { CourseDetail } from './user/course-detail/course-detail';
+import { CertificateVerify } from './certificate-verify/certificate-verify';
 
 @NgModule({
   declarations: [
@@ -35,6 +37,8 @@ import { CoursePlayer } from './user/course-player/course-player';
     ResetPassword,
     MyFavorites,
     CoursePlayer,
+    CourseDetail,
+    CertificateVerify,
   ],
   imports: [BrowserModule, AppRoutingModule, SharedModule],
   providers: [

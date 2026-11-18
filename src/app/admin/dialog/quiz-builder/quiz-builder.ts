@@ -31,6 +31,8 @@ export class QuizBuilder implements OnInit {
       title: ['', Validators.required],
       description: [''],
       passingScore: [70, [Validators.required, Validators.min(0), Validators.max(100)]],
+      timeLimitMinutes: [0, [Validators.min(0)]],
+      shuffleQuestions: [false],
       published: [true],
       questions: this.fb.array([]),
     });
@@ -48,6 +50,8 @@ export class QuizBuilder implements OnInit {
               title: quiz.title,
               description: quiz.description || '',
               passingScore: quiz.passingScore ?? 70,
+              timeLimitMinutes: quiz.timeLimitMinutes ?? 0,
+              shuffleQuestions: !!quiz.shuffleQuestions,
               published: quiz.published !== false,
             });
             this.questions.clear();

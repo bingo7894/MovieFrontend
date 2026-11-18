@@ -2,6 +2,8 @@ import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, finalize, Subject, Subscription } from 'rxjs';
 import { ProgressService } from '../../shared/services/progress-service';
+import { CertificateService } from '../../shared/services/certificate-service';
+import { DialogService } from '../../shared/services/dialog-service';
 import { NotificationService } from '../../shared/services/notification-service';
 import { UtilityService } from '../../shared/services/utility-service';
 import { MediaService } from '../../shared/services/media-service';
@@ -15,6 +17,7 @@ import { ErrorHandlerService } from '../../shared/services/error-handler-service
 })
 export class MyFavorites implements OnInit, OnDestroy {
   courses: any[] = [];
+  certificates: any[] = [];
   loading = true;
   refreshing = false;
   hasLoadedOnce = false;
@@ -34,6 +37,8 @@ export class MyFavorites implements OnInit, OnDestroy {
 
   constructor(
     private progressService: ProgressService,
+    private certificateService: CertificateService,
+    private dialogService: DialogService,
     private notification: NotificationService,
     public utilityService: UtilityService,
     public mediaService: MediaService,
@@ -43,10 +48,23 @@ export class MyFavorites implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadCourses();
+    this.loadCertificates();
     this.searchSub = this.searchSubject.pipe(debounceTime(350), distinctUntilChanged()).subscribe(() => {
       this.currentPage = 0;
       this.loadCourses();
     });
+  }
+
+  loadCertificates(): void {
+    this.certificateService.getMyCertificates().subscribe({
+      next: (certs: any) => {
+        this.certificates = certs || [];
+      },
+    });
+  }
+
+  viewCertificate(cert: any): void {
+    this.dialogService.openCertificateDialog(cert);
   }
 
   ngOnDestroy(): void {
